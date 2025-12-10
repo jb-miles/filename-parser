@@ -1,0 +1,97 @@
+{
+  "extensions": [
+    "mp4",
+    "avi",
+    "mkv",
+    "wmv",
+    "mov",
+    "flv",
+    "m4v",
+    "mpg",
+    "MP4",
+    "AVI",
+    "MKV",
+    "WMV",
+    "MOV",
+    "FLV",
+    "M4V"
+  ],
+  "resolution_markers": [
+    "2160p",
+    "1080p",
+    "720p",
+    "540p",
+    "480p",
+    "360p",
+    "240p",
+    "2160",
+    "1080",
+    "720",
+    "480",
+    "360",
+    "240",
+    "HD1080p",
+    "HD720p",
+    "HD480p",
+    "HD360p",
+    "UHD1080p",
+    "UHD720p",
+    "FHD1080p",
+    "FHD720p",
+    "FHD",
+    "4K",
+    "4k",
+    "2K",
+    "2k"
+  ],
+  "quality_markers": [
+    "HQ",
+    "UHD",
+    "HD"
+  ],
+  "source_markers": [
+    "DVD-RIP"
+  ],
+  "format_markers": [
+    "3D-SBS",
+    "h264"
+  ],
+  "misc_markers": [
+    "original size",
+    "(b)",
+    "(t)",
+    "(bt)"
+  ],
+  "trimming_strings": [
+    ".",
+    " () ",
+    " ()",
+    "() ",
+    "()",
+    " - ",
+    " -",
+    "- ",
+    "-",
+    " []",
+    "[] ",
+    "[]",
+    " ",
+    "_"
+  ],
+  "replace_with_dash": [
+    "()",
+    "[]",
+    "- -",
+    "___",
+    "__"
+  ],
+  "junk_tokens": [
+  "Gay",
+  "gay",
+  "GAY",
+  "Bareback",
+  "bareback",
+  "BAREBACK",
+  "BareBack"
+]
+}

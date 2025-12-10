@@ -1,0 +1,71 @@
+{
+  "version": "1.0.0",
+  "month_pattern": "(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)",
+  "month_names": {
+    "jan": "01",
+    "january": "01",
+    "feb": "02",
+    "february": "02",
+    "mar": "03",
+    "march": "03",
+    "apr": "04",
+    "april": "04",
+    "may": "05",
+    "jun": "06",
+    "june": "06",
+    "jul": "07",
+    "july": "07",
+    "aug": "08",
+    "august": "08",
+    "sep": "09",
+    "september": "09",
+    "oct": "10",
+    "october": "10",
+    "nov": "11",
+    "november": "11",
+    "dec": "12",
+    "december": "12"
+  },
+  "patterns": [
+    {
+      "regex": "(?P<year>(?:19|20)\\d{2})[-.\\s_/](?P<month>0[1-9]|1[0-2])[-.\\s_/](?P<day>0[1-9]|[12]\\d|3[01])",
+      "type": "iso",
+      "comment": "ISO format: 2020-01-15"
+    },
+    {
+      "regex": "(?P<day>[0-3]?\\d)(?:st|nd|rd|th)?[\\s_.-]+(?P<month_name>MONTH_PATTERN)[\\s_.,\\-]+(?P<year>(?:19|20)\\d{2})",
+      "type": "day_month_year",
+      "comment": "Day month year with ordinals: 14th Dec 2012, 1st January 2020"
+    },
+    {
+      "regex": "\\((?P<month_name>MONTH_PATTERN)\\s*(?P<day>[0-3]?\\d)(?:st|nd|rd|th)?[,\\s._-]+(?P<year>(?:19|20)\\d{2})\\)",
+      "type": "parenthesized_month_day_year",
+      "comment": "Parenthesized: (January 15th, 2020)"
+    },
+    {
+      "regex": "(?P<month_name>MONTH_PATTERN)\\s*(?P<day>[0-3]?\\d)(?:st|nd|rd|th)?[,\\s._-]+(?P<year>(?:19|20)\\d{2})",
+      "type": "month_day_year",
+      "comment": "Month day year with ordinals: January 15th, 2020"
+    },
+    {
+      "regex": "(?P<year>(?:19|20)\\d{2})(?P<month>0[1-9]|1[0-2])(?P<day>0[1-9]|[12]\\d|3[01])",
+      "type": "compact",
+      "comment": "Compact format: 20200115"
+    },
+    {
+      "regex": "(?P<day>[0-3]?\\d)(?:st|nd|rd|th)?(?P<month_name>MONTH_PATTERN)(?P<year>(?:19|20)\\d{2})",
+      "type": "compact_month_name",
+      "comment": "Compact with month name: 15June2011, 1stJan2020"
+    },
+    {
+      "regex": "(?P<month>0[1-9]|1[0-2])[./-](?P<day>0[1-9]|[12]\\d|3[01])[./-](?P<year>(?:19|20)\\d{2})",
+      "type": "us_date",
+      "comment": "US format: 01.15.2010, 01/15/2010, 01-15-2010"
+    },
+    {
+      "regex": "(?P<year>(?:19|20)\\d{2})",
+      "type": "year",
+      "comment": "Year only: 2020 (LAST - least specific)"
+    }
+  ]
+}
