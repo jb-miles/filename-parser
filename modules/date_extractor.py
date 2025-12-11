@@ -20,6 +20,7 @@ class DateMatch:
     start: int
     end: int
     token_index: int
+    normalized_date: Optional[str] = None
 
 
 class DateExtractor:
@@ -38,14 +39,14 @@ class DateExtractor:
 
     def __init__(self):
         """Initialize with date patterns from JSON config."""
-        self.date_patterns = self._load_date_patterns()
+        self.date_patterns, self.month_names = self._load_date_patterns()
 
-    def _load_date_patterns(self) -> List[Tuple[re.Pattern, str]]:
+    def _load_date_patterns(self) -> Tuple[List[Tuple[re.Pattern, str]], dict]:
         """
         Load date patterns from date_formats.json.
 
         Returns:
-            List of (compiled_regex, pattern_type) tuples
+            Tuple of (compiled_regex, pattern_type) tuples and month name map
         """
         config_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
@@ -57,10 +58,11 @@ class DateExtractor:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
-            return []
+            return [], {}
 
         patterns = []
         month_pattern = config.get('month_pattern', '')
+        month_names = config.get('month_names', {})
 
         for pattern_entry in config.get('patterns', []):
             regex_str = pattern_entry.get('regex', '')
@@ -78,7 +80,7 @@ class DateExtractor:
             except re.error:
                 continue
 
-        return patterns
+        return patterns, month_names
 
     def process(self, result: TokenizationResult) -> TokenizationResult:
         """
@@ -90,6 +92,10 @@ class DateExtractor:
         Returns:
             Updated TokenizationResult with dates extracted and tokens renumbered
         """
+        # Handle None tokens gracefully
+        if result.tokens is None:
+            return result
+
         # Find all dates in tokens (excluding path tokens)
         date_matches = self._find_dates_in_tokens(result.tokens)
 
@@ -107,7 +113,8 @@ class DateExtractor:
             original=result.original,
             cleaned=result.cleaned,
             pattern=new_pattern,
-            tokens=new_tokens
+            tokens=new_tokens,
+            studio=result.studio
         )
 
     def _find_dates_in_tokens(self, tokens: List[Token]) -> List[DateMatch]:
@@ -134,12 +141,14 @@ class DateExtractor:
             for pattern, pattern_type in self.date_patterns:
                 match = pattern.search(token.value)
                 if match:
+                    normalized = self._normalize_date(match, pattern_type)
                     # Found a date - record it
                     matches.append(DateMatch(
                         date_str=match.group(0),
                         start=match.start(),
                         end=match.end(),
-                        token_index=token_idx
+                        token_index=token_idx,
+                        normalized_date=normalized
                     ))
                     break  # Take first matching pattern only
 
@@ -214,8 +223,9 @@ class DateExtractor:
                 ))
 
         # Date itself
+        normalized_value = date_match.normalized_date or date_str
         result.append(Token(
-            value=date_str,
+            value=normalized_value,
             type='date',
             position=token.position + start
         ))
@@ -231,6 +241,71 @@ class DateExtractor:
                 ))
 
         return result
+
+    def _normalize_date(self, match: re.Match, pattern_type: str) -> Optional[str]:
+        """
+        Convert a matched date into ISO 8601 (YYYY-MM-DD) when possible.
+
+        Args:
+            match: Regex match containing date components
+            pattern_type: Identifier for pattern shape (e.g., iso, us_date)
+
+        Returns:
+            ISO 8601 formatted string or None if normalization fails
+        """
+        try:
+            if pattern_type in {'iso', 'compact'}:
+                year = match.group('year')
+                month = match.group('month')
+                day = match.group('day')
+                return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+
+            if pattern_type in {'us_date'}:
+                year = match.group('year')
+                month = match.group('month')
+                day = match.group('day')
+                return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+
+            if pattern_type in {'day_month_year'}:
+                year = match.group('year')
+                month = self._month_name_to_number(match.group('month_name'))
+                day = match.group('day')
+                if month:
+                    return f"{year}-{month}-{day.zfill(2)}"
+                return None
+
+            if pattern_type in {'parenthesized_month_day_year', 'month_day_year'}:
+                year = match.group('year')
+                month = self._month_name_to_number(match.group('month_name'))
+                day = match.group('day')
+                if month:
+                    return f"{year}-{month}-{day.zfill(2)}"
+                return None
+
+            if pattern_type == 'compact_month_name':
+                year = match.group('year')
+                month = self._month_name_to_number(match.group('month_name'))
+                day = match.group('day')
+                if month:
+                    return f"{year}-{month}-{day.zfill(2)}"
+                return None
+
+            if pattern_type == 'year':
+                return match.group('year')
+        except (IndexError, KeyError, AttributeError):
+            return None
+
+        return None
+
+    def _month_name_to_number(self, month_name: Optional[str]) -> Optional[str]:
+        """Map textual month to two-digit month number."""
+        if not month_name:
+            return None
+        key = month_name.strip().lower()
+        month_num = self.month_names.get(key)
+        if month_num:
+            return month_num.zfill(2)
+        return None
 
     def _update_pattern(self, pattern: str, date_matches: List[DateMatch],
                        original_tokens: List[Token]) -> str:
