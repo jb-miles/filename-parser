@@ -11,7 +11,10 @@ from modules import (
     PreTokenizationResult,
     Tokenizer,
     TokenizationResult,
-    DateExtractor
+    DateExtractor,
+    StudioMatcher,
+    StudioCodeFinder,
+    PerformerMatcher
 )
 
 
@@ -22,6 +25,9 @@ class FilenameParser:
         self.pre_tokenizer = PreTokenizer()
         self.tokenizer = Tokenizer()
         self.date_extractor = DateExtractor()
+        self.studio_matcher = StudioMatcher()
+        self.studio_code_finder = StudioCodeFinder()
+        self.performer_matcher = PerformerMatcher()
 
     def pre_tokenize(self, filename: str) -> PreTokenizationResult:
         """Process filename before tokenization by removing early removal tokens."""
@@ -39,15 +45,27 @@ class FilenameParser:
         """Extract dates from tokens and renumber."""
         return self.date_extractor.process(token_result)
 
+    def match_studios(self, token_result: TokenizationResult) -> TokenizationResult:
+        """Match tokens against known studios and mark studio tokens."""
+        return self.studio_matcher.process(token_result)
+
+    def find_studio_codes(self, token_result: TokenizationResult) -> TokenizationResult:
+        """Find and mark studio codes in tokens."""
+        return self.studio_code_finder.process(token_result)
+    
+    def match_performers(self, token_result: TokenizationResult) -> TokenizationResult:
+        """Match tokens against performer name patterns and mark performer tokens."""
+        return self.performer_matcher.process(token_result)
+
     def parse(self, filename: str) -> TokenizationResult:
         """
-        Full parsing pipeline: pre-tokenize → tokenize → extract dates.
+        Full parsing pipeline: pre-tokenize → tokenize → extract dates → match studios → find studio codes → match performers.
 
         Args:
             filename: Filename to parse
 
         Returns:
-            TokenizationResult with dates extracted
+            TokenizationResult with dates extracted, studios matched, studio codes found, and performers matched
         """
         # Step 1: Pre-tokenization (remove quality markers, extensions, etc.)
         pre_result = self.pre_tokenize(filename)
@@ -57,6 +75,15 @@ class FilenameParser:
 
         # Step 3: Date extraction (extract dates and renumber tokens)
         final_result = self.extract_dates(token_result)
+
+        # Step 4: Studio matching (identify and mark studio tokens)
+        final_result = self.match_studios(final_result)
+
+        # Step 5: Studio code finding (identify and mark studio code tokens)
+        final_result = self.find_studio_codes(final_result)
+
+        # Step 6: Performer matching (identify and mark performer tokens)
+        final_result = self.match_performers(final_result)
 
         return final_result
 

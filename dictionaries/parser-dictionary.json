@@ -17,8 +17,17 @@
     "M4V"
   ],
   "resolution_markers": [
+    "UHD1080p",
+    "UHD720p",
+    "FHD1080p",
+    "FHD720p",
+    "HD1080p",
+    "HD720p",
+    "HD480p",
+    "HD360p",
     "2160p",
     "1080p",
+    "1080P",
     "720p",
     "540p",
     "480p",
@@ -30,14 +39,6 @@
     "480",
     "360",
     "240",
-    "HD1080p",
-    "HD720p",
-    "HD480p",
-    "HD360p",
-    "UHD1080p",
-    "UHD720p",
-    "FHD1080p",
-    "FHD720p",
     "FHD",
     "4K",
     "4k",
@@ -50,10 +51,12 @@
     "HD"
   ],
   "source_markers": [
-    "DVD-RIP"
+    "DVD-RIP",
+    "DVD5-RIP"
   ],
   "format_markers": [
     "3D-SBS",
+    "3D SBS",
     "h264"
   ],
   "misc_markers": [
@@ -93,5 +96,86 @@
   "bareback",
   "BAREBACK",
   "BareBack"
-]
+  ],
+  "non_performer_words": [
+    "scene",
+    "movie",
+    "video",
+    "clip",
+    "episode",
+    "part",
+    "series",
+    "collection",
+    "compilation",
+    "best",
+    "of",
+    "the",
+    "in",
+    "on",
+    "at",
+    "to",
+    "from",
+    "with",
+    "for",
+    "by",
+    "de",
+    "la",
+    "el",
+    "les",
+    "des",
+    "et",
+    "und",
+    "en",
+    "y",
+    "e",
+    "vs",
+    "versus",
+    "presents",
+    "features",
+    "starring",
+    "friends",
+    "and",
+    "movie",
+    "scene",
+    "video",
+    "clip",
+    "bareback",
+    "sweat",
+    "apples",
+    "barefoot",
+    "fisted",
+    "juicy",
+    "sunscreen",
+    "beautiful"
+  ],
+  "studio_codes": [
+    {
+      "code": "ACM####",
+      "studio": "Corbin Fisher"
+    },
+    {
+      "code": "ACT###",
+      "studio": "Active Duty"
+    },
+    {
+      "code": "FX###",
+      "studio": "FratX"
+    },
+    {
+      "code": "SC####",
+      "studio": "Sean Cody"
+    },
+    {
+      "code": "SC-####",
+      "studio": "Sean Cody"
+    },
+    {
+      "code": "Incident ###",
+      "studio": "Boys Halfway House"
+    },
+    {
+      "code": "Incident \\# ###",
+      "studio": "Boys Halfway House"
+    }
+  ]
 }

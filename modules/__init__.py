@@ -6,6 +6,9 @@ This package contains the core processing modules:
 - tokenizer: Token extraction and pattern recognition
 - date_extractor: Date extraction and normalization
 - trimmer: String trimming utilities
+- studio_matcher: Studio name matching
+- studio_code_finder: Studio code identification
+- performer_matcher: Performer name pattern matching
 """
 
 # Explicit imports make the public API clear and prevent namespace pollution
@@ -17,6 +20,9 @@ from .pre_tokenizer import (
     EarlyRemovalCategory
 )
 from .date_extractor import DateExtractor, DateMatch
+from .studio_matcher import StudioMatcher
+from .studio_code_finder import StudioCodeFinder
+from .performer_matcher import PerformerMatcher
 
 __all__ = [
     'Tokenizer',
@@ -28,4 +34,7 @@ __all__ = [
     'EarlyRemovalCategory',
     'DateExtractor',
     'DateMatch',
+    'StudioMatcher',
+    'StudioCodeFinder',
+    'PerformerMatcher',
 ]

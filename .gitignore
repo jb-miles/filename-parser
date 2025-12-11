@@ -45,3 +45,7 @@ htmlcov/
 # Environment
 .env
 .env.local
+
+current-results-report.md
+metadata-parsing-report.md
+tokenization-normalization-plan.md

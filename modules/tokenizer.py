@@ -29,6 +29,7 @@ class TokenizationResult:
     cleaned: str
     pattern: Optional[str] = None
     tokens: Optional[List[Token]] = None
+    studio: Optional[str] = None
     
     def to_json(self) -> str:
         """Convert result to JSON format."""
@@ -58,6 +59,8 @@ class TokenizationResult:
             "tokens": tokens_data,
             **token_dict  # Include individual token fields
         }
+        if self.studio:
+            json_data["studio"] = self.studio
         return json.dumps(json_data)
 
 
@@ -65,7 +68,7 @@ class Tokenizer:
     """Tokenizer for extracting structured tokens from filenames."""
 
     # Hardcoded dictionary path relative to this file
-    DICTIONARY_PATH = os.path.join(os.path.dirname(__file__), "parser-dictionary.json")
+    DICTIONARY_PATH = os.path.join(os.path.dirname(__file__), "..", "dictionaries", "parser-dictionary.json")
 
     def __init__(self):
         """Initialize tokenizer with parser dictionary."""
