@@ -6,11 +6,10 @@ After date extraction, all subsequent tokens are renumbered.
 """
 
 import re
-import json
-import os
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from .tokenizer import Token, TokenizationResult
+from .dictionary_loader import DictionaryLoader
 
 
 @dataclass
@@ -48,16 +47,8 @@ class DateExtractor:
         Returns:
             Tuple of (compiled_regex, pattern_type) tuples and month name map
         """
-        config_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            'dictionaries',
-            'date_formats.json'
-        )
-
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
+        config = DictionaryLoader.load_dictionary('date_formats.json')
+        if not config:
             return [], {}
 
         patterns = []
@@ -96,18 +87,20 @@ class DateExtractor:
         if result.tokens is None:
             return result
 
+        tokens = result.tokens
+
         # Find all dates in tokens (excluding path tokens)
-        date_matches = self._find_dates_in_tokens(result.tokens)
+        date_matches = self._find_dates_in_tokens(tokens)
 
         if not date_matches:
             # No dates found, return unchanged
             return result
 
         # Split tokens where dates were found
-        new_tokens = self._split_tokens_with_dates(result.tokens, date_matches)
+        new_tokens = self._split_tokens_with_dates(tokens, date_matches)
 
         # Update pattern to reflect new token structure
-        new_pattern = self._update_pattern(result.pattern, date_matches, result.tokens)
+        new_pattern = self._update_pattern(result.pattern, date_matches, tokens)
 
         return TokenizationResult(
             original=result.original,
@@ -307,8 +300,8 @@ class DateExtractor:
             return month_num.zfill(2)
         return None
 
-    def _update_pattern(self, pattern: str, date_matches: List[DateMatch],
-                       original_tokens: List[Token]) -> str:
+    def _update_pattern(self, pattern: Optional[str], date_matches: List[DateMatch],
+                       original_tokens: List[Token]) -> Optional[str]:
         """
         Update pattern to reflect date extraction and token renumbering.
 
@@ -401,9 +394,11 @@ if __name__ == '__main__':
     for test in test_cases:
         result = tokenizer.tokenize(test)
         print(f"\nInput:   {test}")
+        tokens_before = result.tokens or []
         print(f"Before:  {result.pattern}")
-        print(f"Tokens:  {[t.value for t in result.tokens if t.type != 'path']}")
+        print(f"Tokens:  {[t.value for t in tokens_before if t.type != 'path']}")
 
         result = extractor.process(result)
+        tokens_after = result.tokens or []
         print(f"After:   {result.pattern}")
-        print(f"Tokens:  {[(t.value, t.type) for t in result.tokens if t.type != 'path']}")
+        print(f"Tokens:  {[(t.value, t.type) for t in tokens_after if t.type != 'path']}")

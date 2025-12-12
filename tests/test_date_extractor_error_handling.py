@@ -9,6 +9,7 @@ import json
 import re
 from unittest.mock import patch, mock_open
 from modules import DateExtractor, TokenizationResult, Token
+from modules.dictionary_loader import DictionaryLoader
 
 
 @pytest.fixture
@@ -17,12 +18,21 @@ def date_extractor():
     return DateExtractor()
 
 
+@pytest.fixture(autouse=True)
+def clear_dictionary_cache():
+    """Clear the dictionary cache before each test."""
+    DictionaryLoader.clear_cache()
+    yield
+    DictionaryLoader.clear_cache()
+
+
 class TestDateExtractorConfigLoading:
     """Tests for date configuration loading and error handling."""
 
     def test_missing_date_formats_file(self):
         """Test that extractor handles missing date_formats.json gracefully."""
-        with patch('builtins.open', side_effect=FileNotFoundError):
+        # Mock DictionaryLoader to return None (simulating missing file)
+        with patch.object(DictionaryLoader, 'load_dictionary', return_value=None):
             extractor = DateExtractor()
             # Should initialize with empty patterns instead of crashing
             assert extractor.date_patterns == []
@@ -30,20 +40,18 @@ class TestDateExtractorConfigLoading:
 
     def test_invalid_json_in_date_formats(self):
         """Test that extractor handles invalid JSON in date_formats.json gracefully."""
-        invalid_json = "{ invalid json"
-        with patch('builtins.open', mock_open(read_data=invalid_json)):
-            with patch('json.load', side_effect=json.JSONDecodeError("msg", "doc", 0)):
-                extractor = DateExtractor()
-                assert extractor.date_patterns == []
-                assert extractor.month_names == {}
+        # Mock DictionaryLoader to return None (simulating JSON decode error)
+        with patch.object(DictionaryLoader, 'load_dictionary', return_value=None):
+            extractor = DateExtractor()
+            assert extractor.date_patterns == []
+            assert extractor.month_names == {}
 
     def test_empty_date_formats_file(self):
         """Test handling of empty date formats configuration."""
         empty_config = {}
-        with patch('builtins.open', mock_open(read_data=json.dumps(empty_config))):
-            with patch('json.load', return_value=empty_config):
-                extractor = DateExtractor()
-                assert extractor.date_patterns == []
+        with patch.object(DictionaryLoader, 'load_dictionary', return_value=empty_config):
+            extractor = DateExtractor()
+            assert extractor.date_patterns == []
 
     def test_missing_patterns_key(self):
         """Test handling when 'patterns' key is missing from config."""
@@ -51,10 +59,9 @@ class TestDateExtractorConfigLoading:
             "month_pattern": "...",
             "month_names": {}
         }
-        with patch('builtins.open', mock_open(read_data=json.dumps(config_without_patterns))):
-            with patch('json.load', return_value=config_without_patterns):
-                extractor = DateExtractor()
-                assert extractor.date_patterns == []
+        with patch.object(DictionaryLoader, 'load_dictionary', return_value=config_without_patterns):
+            extractor = DateExtractor()
+            assert extractor.date_patterns == []
 
     def test_missing_regex_field_in_pattern(self):
         """Test handling when regex field is missing from a pattern entry."""
@@ -349,10 +356,9 @@ class TestMonthNameHandling:
                 {"regex": r"\d{1,2}\s+(Jan|Feb|Mar)\s+\d{4}", "type": "DD MONTH YYYY"}
             ]
         }
-        with patch('builtins.open', mock_open(read_data=json.dumps(config))):
-            with patch('json.load', return_value=config):
-                extractor = DateExtractor()
-                assert extractor.month_names == {}
+        with patch.object(DictionaryLoader, 'load_dictionary', return_value=config):
+            extractor = DateExtractor()
+            assert extractor.month_names == {}
 
 
 class TestBoundaryConditions:

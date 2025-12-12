@@ -85,8 +85,8 @@ def test_no_studio_match(parser):
     """Test filename with no studio match."""
     result = parser.parse("Unknown Studio - Scene Title")
 
-    # Verify first token remains as text
-    assert result.tokens[0].type == "text"
+    # Verify first token is marked as title (by TitleExtractor at end of pipeline)
+    assert result.tokens[0].type == "title"
     assert result.pattern == "{token0} - {token1}"
 
 
@@ -157,9 +157,9 @@ def test_no_partial_studio_matches(parser):
     result = parser.parse("Active Theory - Scene Name")
 
     # "Active Theory" should not match "Active Duty" as a studio
-    # The first token should remain unmatched
+    # The first token should be marked as title (by TitleExtractor at end of pipeline)
     if result.tokens[0].type != "studio":
-        assert result.tokens[0].type == "text"
+        assert result.tokens[0].type == "title"
         assert result.tokens[0].value == "Active Theory"
 
 

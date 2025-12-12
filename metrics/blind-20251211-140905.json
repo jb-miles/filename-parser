@@ -1,0 +1,45 @@
+{
+  "mode": "blind",
+  "total_rows": 10,
+  "field_coverage": {
+    "studio": 0.7,
+    "performers": 0.3,
+    "date": 0.3,
+    "studio_code": 0.0,
+    "title": 0.0,
+    "sequence": 0.0,
+    "group": 0.0
+  },
+  "avg_match_rate": 0.5167,
+  "pattern_histogram": [
+    {
+      "pattern": "{studio} {text}",
+      "count": 4
+    },
+    {
+      "pattern": "{text} {performers}",
+      "count": 2
+    },
+    {
+      "pattern": "{studio} {text} {performers}",
+      "count": 1
+    },
+    {
+      "pattern": "{date} {studio} {text} {text}",
+      "count": 1
+    },
+    {
+      "pattern": "{studio} {text} {date}",
+      "count": 1
+    },
+    {
+      "pattern": "{text} {text} {date}",
+      "count": 1
+    }
+  ],
+  "anomalies": {
+    "rows_with_unlabeled_tokens": 10,
+    "total_unlabeled_tokens": 12
+  },
+  "timestamp": "2025-12-11T14:09:05.535489"
+}

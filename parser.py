@@ -6,28 +6,52 @@ Filename parser for adult film scenes with early removal token processing.
 import re
 from dataclasses import dataclass
 from typing import List, Optional
-from modules import (
-    PreTokenizer,
-    PreTokenizationResult,
-    Tokenizer,
-    TokenizationResult,
-    DateExtractor,
-    StudioMatcher,
-    StudioCodeFinder,
-    PerformerMatcher
-)
+try:
+    from .modules import (
+        PreTokenizer,
+        PreTokenizationResult,
+        Tokenizer,
+        TokenizationResult,
+        DateExtractor,
+        StudioMatcher,
+        StudioCodeFinder,
+        PerformerMatcher,
+        SequenceExtractor,
+        TitleExtractor
+    )
+    from .modules.dictionary_loader import DictionaryLoader
+except ImportError:
+    from modules import (
+        PreTokenizer,
+        PreTokenizationResult,
+        Tokenizer,
+        TokenizationResult,
+        DateExtractor,
+        StudioMatcher,
+        StudioCodeFinder,
+        PerformerMatcher,
+        SequenceExtractor,
+        TitleExtractor
+    )
+    from modules.dictionary_loader import DictionaryLoader
 
 
 class FilenameParser:
     """Parser for extracting metadata from adult film filenames."""
 
     def __init__(self):
+        # Preload all dictionaries into cache to avoid redundant file I/O
+        # across multiple modules. Modules will use cached versions.
+        DictionaryLoader.preload_all()
+
         self.pre_tokenizer = PreTokenizer()
         self.tokenizer = Tokenizer()
         self.date_extractor = DateExtractor()
         self.studio_matcher = StudioMatcher()
         self.studio_code_finder = StudioCodeFinder()
         self.performer_matcher = PerformerMatcher()
+        self.sequence_extractor = SequenceExtractor()
+        self.title_extractor = TitleExtractor()
 
     def pre_tokenize(self, filename: str) -> PreTokenizationResult:
         """Process filename before tokenization by removing early removal tokens."""
@@ -57,15 +81,33 @@ class FilenameParser:
         """Match tokens against performer name patterns and mark performer tokens."""
         return self.performer_matcher.process(token_result)
 
+    def extract_sequences(self, token_result: TokenizationResult) -> TokenizationResult:
+        """Extract sequence information (part, scene, episode, volume) and group."""
+        return self.sequence_extractor.process(token_result)
+
+    def extract_title(self, token_result: TokenizationResult) -> TokenizationResult:
+        """Extract title from remaining unlabeled tokens."""
+        return self.title_extractor.process(token_result)
+
     def parse(self, filename: str) -> TokenizationResult:
         """
-        Full parsing pipeline: pre-tokenize → tokenize → extract dates → match studios → find studio codes → match performers.
+        Full parsing pipeline.
+
+        Pipeline order:
+        1. Pre-tokenize (remove quality markers, extensions, etc.)
+        2. Tokenize (extract tokens and pattern)
+        3. Extract dates
+        4. Match studios
+        5. Find studio codes
+        6. Match performers
+        7. Extract sequences and group (must come before title)
+        8. Extract title (comes last, uses leftovers)
 
         Args:
             filename: Filename to parse
 
         Returns:
-            TokenizationResult with dates extracted, studios matched, studio codes found, and performers matched
+            TokenizationResult with all fields extracted
         """
         # Step 1: Pre-tokenization (remove quality markers, extensions, etc.)
         pre_result = self.pre_tokenize(filename)
@@ -84,6 +126,12 @@ class FilenameParser:
 
         # Step 6: Performer matching (identify and mark performer tokens)
         final_result = self.match_performers(final_result)
+
+        # Step 7: Sequence extraction (identify part/scene/episode/volume and extract group)
+        final_result = self.extract_sequences(final_result)
+
+        # Step 8: Title extraction (extract from remaining unlabeled tokens)
+        final_result = self.extract_title(final_result)
 
         return final_result
 

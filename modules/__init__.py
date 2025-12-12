@@ -9,6 +9,8 @@ This package contains the core processing modules:
 - studio_matcher: Studio name matching
 - studio_code_finder: Studio code identification
 - performer_matcher: Performer name pattern matching
+- sequence_extractor: Sequence information extraction (part, scene, episode, volume)
+- title_extractor: Title extraction from remaining tokens
 """
 
 # Explicit imports make the public API clear and prevent namespace pollution
@@ -23,6 +25,8 @@ from .date_extractor import DateExtractor, DateMatch
 from .studio_matcher import StudioMatcher
 from .studio_code_finder import StudioCodeFinder
 from .performer_matcher import PerformerMatcher
+from .sequence_extractor import SequenceExtractor
+from .title_extractor import TitleExtractor
 
 __all__ = [
     'Tokenizer',
@@ -37,4 +41,6 @@ __all__ = [
     'StudioMatcher',
     'StudioCodeFinder',
     'PerformerMatcher',
+    'SequenceExtractor',
+    'TitleExtractor',
 ]

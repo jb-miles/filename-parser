@@ -8,10 +8,10 @@ as a dedicated path token ahead of other tokens.
 
 import re
 import json
-import os
 from dataclasses import dataclass
 from typing import List, Optional
 from .trimmer import Trimmer
+from .dictionary_loader import DictionaryLoader
 
 
 @dataclass
@@ -30,6 +30,9 @@ class TokenizationResult:
     pattern: Optional[str] = None
     tokens: Optional[List[Token]] = None
     studio: Optional[str] = None
+    title: Optional[str] = None
+    sequence: Optional[dict] = None  # e.g., {"part": 2, "scene": 1, "title": 3}
+    group: Optional[str] = None  # Parent directory / collection bucket
     
     def to_json(self) -> str:
         """Convert result to JSON format."""
@@ -67,19 +70,10 @@ class TokenizationResult:
 class Tokenizer:
     """Tokenizer for extracting structured tokens from filenames."""
 
-    # Hardcoded dictionary path relative to this file
-    DICTIONARY_PATH = os.path.join(os.path.dirname(__file__), "..", "dictionaries", "parser-dictionary.json")
-
     def __init__(self):
         """Initialize tokenizer with parser dictionary."""
         self.trimmer = Trimmer()
-        self.junk_tokens = []
-        try:
-            with open(self.DICTIONARY_PATH, 'r', encoding='utf-8') as f:
-                dictionary = json.load(f)
-                self.junk_tokens = dictionary.get('junk_tokens', [])
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
+        self.junk_tokens = DictionaryLoader.get_section('junk_tokens') or []
 
     def tokenize(self, original: str, cleaned: Optional[str] = None) -> TokenizationResult:
         """

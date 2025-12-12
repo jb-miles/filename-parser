@@ -6,11 +6,11 @@ Handles early removal of tokens from filenames.
 
 import re
 import json
-import os
 import unicodedata
 from dataclasses import dataclass
 from typing import List, Optional
 from .trimmer import Trimmer
+from .dictionary_loader import DictionaryLoader
 
 
 @dataclass
@@ -63,7 +63,7 @@ class EarlyRemovalCategory:
 class PreTokenizer:
     """Pre-tokenizer for extracting metadata from adult film filenames."""
 
-    def __init__(self, dictionary_path: str | None = None):
+    def __init__(self, dictionary_path: Optional[str] = None):
         # If no path provided, Trimmer will use its default path
         self.trimmer = Trimmer(dictionary_path)
         self.early_removal_categories = self._default_early_removal_categories()
@@ -151,24 +151,9 @@ class PreTokenizer:
         
         for old, new in replacements.items():
             cleaned = cleaned.replace(old, new)
-        
-        # Load replacement strings from config with encoding detection
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dictionaries', 'parser-dictionary.json')
-        encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1']
-        config = None
-        
-        for encoding in encodings:
-            try:
-                with open(config_path, 'r', encoding=encoding) as f:
-                    config = json.load(f)
-                break
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                continue
-        
-        # If all encoding attempts fail, use default values
-        if config is None:
-            config = {}
-        
+
+        # Load replacement strings from config
+        config = DictionaryLoader.load_dictionary('parser-dictionary.json') or {}
         replace_strings = config.get('replace_with_dash', [])
         
         # Replace each string with dash anywhere it appears
@@ -243,22 +228,8 @@ class PreTokenizer:
 
         categories = []
 
-        # Load configuration from JSON file with encoding detection
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dictionaries', 'parser-dictionary.json')
-        encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1']
-        config = None
-        
-        for encoding in encodings:
-            try:
-                with open(config_path, 'r', encoding=encoding) as f:
-                    config = json.load(f)
-                break
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                continue
-        
-        # If all encoding attempts fail, use default values
-        if config is None:
-            config = {}
+        # Load configuration from JSON file
+        config = DictionaryLoader.load_dictionary('parser-dictionary.json') or {}
 
         # STEP 1: File extensions (remove anywhere, no touching rule needed)
         extensions = config.get('extensions', [])

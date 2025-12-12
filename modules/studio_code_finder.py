@@ -7,51 +7,44 @@ the token type is changed to 'studio_code' and the pattern is updated accordingl
 """
 
 import re
-import json
-import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Pattern
 from .tokenizer import TokenizationResult, Token
+from .dictionary_loader import DictionaryLoader
 
 
 class StudioCodeFinder:
     """Finds and marks studio codes in tokens."""
 
-    # Path to parser dictionary relative to this file
-    DICTIONARY_PATH = os.path.join(os.path.dirname(__file__), "..", "dictionaries", "parser-dictionary.json")
-
     def __init__(self):
         """Initialize studio code finder with studio code patterns."""
-        self.studio_code_patterns: List[Tuple[re.Pattern, Dict[str, str]]] = []
+        self.studio_code_patterns: List[Tuple[Pattern, Dict[str, str]]] = []
         self._load_studio_codes()
 
     def _load_studio_codes(self) -> None:
         """Load studio codes from parser dictionary."""
-        try:
-            with open(self.DICTIONARY_PATH, 'r', encoding='utf-8') as f:
-                dictionary = json.load(f)
-                studio_codes = dictionary.get('studio_codes', [])
+        studio_codes = DictionaryLoader.get_section('studio_codes')
+        if not studio_codes:
+            return
 
-                for studio_code in studio_codes:
-                    code = studio_code.get('code', '')
-                    studio = studio_code.get('studio', '')
-                    if not code or not studio:
-                        continue
+        for studio_code in studio_codes:
+            code = studio_code.get('code', '')
+            studio = studio_code.get('studio', '')
+            if not code or not studio:
+                continue
 
-                    regex = self._pattern_to_regex(code)
-                    if not regex:
-                        continue
+            regex = self._pattern_to_regex(code)
+            if not regex:
+                continue
 
-                    self.studio_code_patterns.append((
-                        regex,
-                        {
-                            'studio': studio,
-                            'pattern': code
-                        }
-                    ))
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
+            self.studio_code_patterns.append((
+                regex,
+                {
+                    'studio': studio,
+                    'pattern': code
+                }
+            ))
 
-    def _pattern_to_regex(self, pattern: str) -> Optional[re.Pattern]:
+    def _pattern_to_regex(self, pattern: str) -> Optional[Pattern]:
         """
         Convert a code pattern with '#' placeholders into a compiled regex.
         '#' characters represent digits; other characters are escaped literally.

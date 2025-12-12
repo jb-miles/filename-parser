@@ -9,8 +9,12 @@ import argparse
 import sys
 import json
 import os
-from parser import FilenameParser
-from modules import PreTokenizer
+try:
+    from .parser import FilenameParser
+    from .modules import PreTokenizer
+except ImportError:
+    from parser import FilenameParser
+    from modules import PreTokenizer
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill, Font
 from openpyxl.utils import get_column_letter

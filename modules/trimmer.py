@@ -5,42 +5,40 @@ Can be used by both pre_tokenizer and tokenizer.
 """
 
 import json
-import os
-from typing import List
+from typing import List, Optional
+from .dictionary_loader import DictionaryLoader
 
 
 class Trimmer:
     """Trims unwanted patterns from the beginning and end of strings."""
 
-    # Hardcoded dictionary path relative to this file (up one level, then into dictionaries/)
-    DICTIONARY_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dictionaries", "parser-dictionary.json")
-
-    def __init__(self, dictionary_path: str | None = None):
+    def __init__(self, dictionary_path: Optional[str] = None):
         """Initialize trimmer with trimming patterns from dictionary.
-        
+
         Args:
-            dictionary_path: Optional path to dictionary file. If None, uses default.
+            dictionary_path: Optional path to dictionary file. If None, uses DictionaryLoader.
         """
-        self.dictionary_path = dictionary_path or self.DICTIONARY_PATH
+        self.dictionary_path = dictionary_path
         self.trimming_strings = []
         self._load_trimming_strings()
 
     def _load_trimming_strings(self):
         """Load trimming strings from parser dictionary."""
-        # Try to load with multiple encodings
-        encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1']
-
-        for encoding in encodings:
-            try:
-                with open(self.dictionary_path, 'r', encoding=encoding) as f:
-                    config = json.load(f)
-                    self.trimming_strings = config.get('trimming_strings', [])
-                    return
-            except (UnicodeDecodeError, json.JSONDecodeError, FileNotFoundError):
-                continue
-
-        # If all encoding attempts fail, use empty list
-        self.trimming_strings = []
+        # If custom path provided, use legacy loading
+        if self.dictionary_path:
+            encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1']
+            for encoding in encodings:
+                try:
+                    with open(self.dictionary_path, 'r', encoding=encoding) as f:
+                        config = json.load(f)
+                        self.trimming_strings = config.get('trimming_strings', [])
+                        return
+                except (UnicodeDecodeError, json.JSONDecodeError, FileNotFoundError):
+                    continue
+            self.trimming_strings = []
+        else:
+            # Use DictionaryLoader for default path
+            self.trimming_strings = DictionaryLoader.get_section('trimming_strings') or []
 
     def trim(self, text: str) -> str:
         """

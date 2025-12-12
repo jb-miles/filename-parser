@@ -8,17 +8,14 @@ the pattern is updated accordingly.
 """
 
 import json
-import os
 import re
 from typing import Dict, List, Set, Optional, Tuple
 from .tokenizer import TokenizationResult, Token
+from .dictionary_loader import DictionaryLoader
 
 
 class StudioMatcher:
     """Matches tokens against known studios and their aliases."""
-
-    # Path to studios dictionary relative to this file
-    STUDIOS_PATH = os.path.join(os.path.dirname(__file__), "..", "dictionaries", "studios.json")
 
     def __init__(self):
         """Initialize studio matcher with studios dictionary."""
@@ -28,49 +25,46 @@ class StudioMatcher:
 
     def _load_studios(self) -> None:
         """Load studios dictionary and build lookup structure."""
-        try:
-            with open(self.STUDIOS_PATH, 'r', encoding='utf-8') as f:
-                studios_list = json.load(f)
+        studios_list = DictionaryLoader.load_dictionary('studios.json')
+        if not studios_list:
+            return
 
-            for studio in studios_list:
-                canonical_name = studio.get('canonical_name', '')
-                if not canonical_name:
-                    continue
+        for studio in studios_list:
+            canonical_name = studio.get('canonical_name', '')
+            if not canonical_name:
+                continue
 
-                # Add canonical name (case-insensitive)
-                self.studios[canonical_name.lower()] = canonical_name
-                self.canonical_names.add(canonical_name)
+            # Add canonical name (case-insensitive)
+            self.studios[canonical_name.lower()] = canonical_name
+            self.canonical_names.add(canonical_name)
 
-                # Add aliases if present
-                aliases = studio.get('aliases', [])
-                if isinstance(aliases, str):
-                    # If it's a JSON string, parse it
-                    try:
-                        aliases = json.loads(aliases)
-                    except json.JSONDecodeError:
-                        aliases = []
+            # Add aliases if present
+            aliases = studio.get('aliases', [])
+            if isinstance(aliases, str):
+                # If it's a JSON string, parse it
+                try:
+                    aliases = json.loads(aliases)
+                except json.JSONDecodeError:
+                    aliases = []
 
-                if isinstance(aliases, list):
-                    for alias in aliases:
-                        if alias:
-                            self.studios[alias.lower()] = canonical_name
+            if isinstance(aliases, list):
+                for alias in aliases:
+                    if alias:
+                        self.studios[alias.lower()] = canonical_name
 
-                # Add abbreviations if present
-                abbrs = studio.get('abbr', [])
-                if isinstance(abbrs, str):
-                    # If it's a JSON string, parse it
-                    try:
-                        abbrs = json.loads(abbrs)
-                    except json.JSONDecodeError:
-                        abbrs = []
+            # Add abbreviations if present
+            abbrs = studio.get('abbr', [])
+            if isinstance(abbrs, str):
+                # If it's a JSON string, parse it
+                try:
+                    abbrs = json.loads(abbrs)
+                except json.JSONDecodeError:
+                    abbrs = []
 
-                if isinstance(abbrs, list):
-                    for abbr in abbrs:
-                        if abbr:
-                            self.studios[abbr.lower()] = canonical_name
-
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
+            if isinstance(abbrs, list):
+                for abbr in abbrs:
+                    if abbr:
+                        self.studios[abbr.lower()] = canonical_name
 
     def process(self, result: TokenizationResult) -> TokenizationResult:
         """

@@ -10,6 +10,7 @@ import tempfile
 import os
 from unittest.mock import patch, MagicMock, mock_open
 from modules import StudioCodeFinder, TokenizationResult, Token
+from modules.dictionary_loader import DictionaryLoader
 
 
 @pytest.fixture
@@ -18,46 +19,46 @@ def studio_code_finder():
     return StudioCodeFinder()
 
 
+@pytest.fixture(autouse=True)
+def clear_dictionary_cache():
+    """Clear the dictionary cache before each test."""
+    DictionaryLoader.clear_cache()
+    yield
+    DictionaryLoader.clear_cache()
+
+
 class TestStudioCodeFinderErrorHandling:
     """Tests for error handling in studio code finder."""
 
     def test_missing_dictionary_file_graceful_handling(self):
         """Test that finder handles missing dictionary file gracefully."""
-        # Mock the open function to raise FileNotFoundError
-        with patch('builtins.open', side_effect=FileNotFoundError):
+        # Mock DictionaryLoader to return None (simulating missing file)
+        with patch.object(DictionaryLoader, 'get_section', return_value=None):
             finder = StudioCodeFinder()
             # Should initialize with empty patterns instead of crashing
             assert finder.studio_code_patterns == []
 
     def test_invalid_json_in_dictionary_graceful_handling(self):
         """Test that finder handles invalid JSON gracefully."""
-        # Mock open to return invalid JSON
-        invalid_json = "{ invalid json }"
-        with patch('builtins.open', mock_open(read_data=invalid_json)):
-            with patch('json.load', side_effect=json.JSONDecodeError("msg", "doc", 0)):
-                finder = StudioCodeFinder()
-                # Should initialize with empty patterns instead of crashing
-                assert finder.studio_code_patterns == []
+        # Mock DictionaryLoader to return None (simulating JSON decode error)
+        with patch.object(DictionaryLoader, 'get_section', return_value=None):
+            finder = StudioCodeFinder()
+            # Should initialize with empty patterns instead of crashing
+            assert finder.studio_code_patterns == []
 
     def test_empty_studio_codes_list(self):
         """Test handling of empty studio_codes list in dictionary."""
-        empty_dict = {"studio_codes": []}
-        json_str = json.dumps(empty_dict)
-
-        with patch('builtins.open', mock_open(read_data=json_str)):
-            with patch('json.load', return_value=empty_dict):
-                finder = StudioCodeFinder()
-                assert finder.studio_code_patterns == []
+        # Mock DictionaryLoader to return empty list
+        with patch.object(DictionaryLoader, 'get_section', return_value=[]):
+            finder = StudioCodeFinder()
+            assert finder.studio_code_patterns == []
 
     def test_missing_studio_codes_key(self):
         """Test handling when 'studio_codes' key is missing from dictionary."""
-        incomplete_dict = {"other_key": []}
-        json_str = json.dumps(incomplete_dict)
-
-        with patch('builtins.open', mock_open(read_data=json_str)):
-            with patch('json.load', return_value=incomplete_dict):
-                finder = StudioCodeFinder()
-                assert finder.studio_code_patterns == []
+        # Mock DictionaryLoader to return None (key not found)
+        with patch.object(DictionaryLoader, 'get_section', return_value=None):
+            finder = StudioCodeFinder()
+            assert finder.studio_code_patterns == []
 
     def test_studio_code_missing_code_field(self):
         """Test handling when studio code entry is missing 'code' field."""

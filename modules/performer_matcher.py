@@ -8,31 +8,26 @@ non-performer tokens.
 """
 
 import re
-import json
-import os
 from typing import Dict, List, Optional, Set, Tuple
 from .tokenizer import TokenizationResult, Token
+from .dictionary_loader import DictionaryLoader
 
 
 class PerformerMatcher:
     """Matches tokens against performer name patterns."""
-    
-    # Path to parser dictionary relative to this file
-    DICTIONARY_PATH = os.path.join(os.path.dirname(__file__), "..", "dictionaries", "parser-dictionary.json")
-    
+
     def __init__(self):
         """Initialize performer matcher with non-performer words."""
         self.non_performer_words: Set[str] = set()
         self._load_non_performer_words()
-    
+
     def _load_non_performer_words(self) -> None:
         """Load words that indicate a token is not a performer list."""
-        try:
-            with open(self.DICTIONARY_PATH, 'r', encoding='utf-8') as f:
-                dictionary = json.load(f)
-                non_performer = dictionary.get('non_performer_words', [])
-                self.non_performer_words = set(word.lower() for word in non_performer)
-        except (FileNotFoundError, json.JSONDecodeError):
+        non_performer = DictionaryLoader.get_section('non_performer_words')
+
+        if non_performer:
+            self.non_performer_words = set(word.lower() for word in non_performer)
+        else:
             # Default set of common non-performer words if dictionary not available
             self.non_performer_words = {
                 'scene', 'movie', 'video', 'clip', 'episode', 'part', 'series',
