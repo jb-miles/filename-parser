@@ -149,7 +149,8 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def read_input_file(filepath: str, limit: Optional[int] = None) -> List[str]:
+def read_input_file(filepath: str, limit: Optional[int] = None,
+                   sheet_name: Optional[str] = None) -> List[str]:
     """
     Read input file and return list of filenames.
     Handles text files and Excel files.
@@ -159,31 +160,39 @@ def read_input_file(filepath: str, limit: Optional[int] = None) -> List[str]:
     # Check if it's an Excel file
     if filepath.endswith('.xlsx'):
         wb = load_workbook(filepath, read_only=True)
-        ws = wb.active
+        try:
+            ws = None
+            if sheet_name:
+                if sheet_name in wb.sheetnames:
+                    ws = wb[sheet_name]
+                else:
+                    raise ValueError(f"Could not find '{sheet_name}' sheet in Excel file. Sheets present: {wb.sheetnames}")
+            else:
+                ws = wb.active
 
-        if ws is None:
-            raise ValueError("Excel file has no active worksheet")
+            if ws is None:
+                raise ValueError("Excel file has no usable worksheet")
 
-        # Find the 'input' column (assuming first row is header)
-        headers = [cell.value for cell in ws[1]]
-        input_col_idx = None
-        for idx, header in enumerate(headers, 1):
-            normalized_header = str(header).strip().lower() if header is not None else ""
-            if normalized_header == 'input':
-                input_col_idx = idx
-                break
-
-        if input_col_idx is None:
-            raise ValueError("Could not find 'input' column in Excel file")
-
-        # Read filenames from the input column
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            if row and row[input_col_idx - 1]:
-                filenames.append(str(row[input_col_idx - 1]))
-                if limit and len(filenames) >= limit:
+            # Find the 'input' column (assuming first row is header)
+            headers = [cell.value for cell in ws[1]]
+            input_col_idx = None
+            for idx, header in enumerate(headers, 1):
+                normalized_header = str(header).strip().lower() if header is not None else ""
+                if normalized_header == 'input':
+                    input_col_idx = idx
                     break
 
-        wb.close()
+            if input_col_idx is None:
+                raise ValueError("Could not find 'input' column in Excel file")
+
+            # Read filenames from the input column
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row and row[input_col_idx - 1]:
+                    filenames.append(str(row[input_col_idx - 1]))
+                    if limit and len(filenames) >= limit:
+                        break
+        finally:
+            wb.close()
     else:
         # Text file - read line by line
         with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
@@ -342,66 +351,69 @@ def calculate_blind_metrics(rows: List[ParsedRow]) -> Dict[str, Any]:
     }
 
 
-def load_reference_data(filepath: str) -> List[ParsedRow]:
+def load_reference_data(filepath: str, sheet_name: str = "Reference") -> List[ParsedRow]:
     """
     Load reference data from Excel file.
 
     Expects the same 16-column schema as our output.
     """
     wb = load_workbook(filepath, read_only=True)
-    ws = wb.active
+    try:
+        if sheet_name not in wb.sheetnames:
+            raise ValueError(f"Could not find '{sheet_name}' sheet in Excel file. Sheets present: {wb.sheetnames}")
 
-    if ws is None:
-        raise ValueError("Excel file has no active worksheet")
+        ws = wb[sheet_name]
+        if ws is None:
+            raise ValueError(f"Excel file has no '{sheet_name}' worksheet")
 
-    # Get headers
-    headers = [cell.value for cell in ws[1]]
+        # Get headers
+        headers = [cell.value for cell in ws[1]]
 
-    # Validate headers match our schema
-    expected_headers = ParsedRow.get_headers()
-    if headers != expected_headers:
-        raise ValueError(f"Reference file headers don't match schema.\nExpected: {expected_headers}\nGot: {headers}")
+        # Validate headers match our schema
+        expected_headers = ParsedRow.get_headers()
+        if headers != expected_headers:
+            raise ValueError(f"Reference file headers don't match schema.\nExpected: {expected_headers}\nGot: {headers}")
 
-    # Load rows
-    reference_rows = []
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        # Convert cell values to appropriate types
-        def to_str(val) -> str:
-            return str(val) if val is not None else ""
+        # Load rows
+        reference_rows = []
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            # Convert cell values to appropriate types
+            def to_str(val) -> str:
+                return str(val) if val is not None else ""
 
-        def to_str_or_none(val) -> Optional[str]:
-            return str(val) if val is not None else None
+            def to_str_or_none(val) -> Optional[str]:
+                return str(val) if val is not None else None
 
-        # Parse the row into ParsedRow
-        parsed_row = ParsedRow(
-            input=to_str(row[0]),
-            removed=to_str(row[1]),
-            path=to_str_or_none(row[2]),
-            filename_cleaned=to_str(row[3]),
-            path_pattern=to_str_or_none(row[4]),
-            filename_pattern=to_str(row[5]),
-            studio=to_str_or_none(row[6]),
-            title=to_str_or_none(row[7]),
-            performers=to_str_or_none(row[8]),
-            date=to_str_or_none(row[9]),
-            studio_code=to_str_or_none(row[10]),
-            sequence=json.loads(str(row[11])) if row[11] else None,
-            group=to_str_or_none(row[12]),
-            unlabeled_path_tokens=ast.literal_eval(str(row[13])) if row[13] else None,
-            unlabeled_filename_tokens=ast.literal_eval(str(row[14])) if row[14] else None,
-            match_stats=json.loads(str(row[15])) if row[15] else {}
-        )
-        reference_rows.append(parsed_row)
-
-    wb.close()
+            # Parse the row into ParsedRow
+            parsed_row = ParsedRow(
+                input=to_str(row[0]),
+                removed=to_str(row[1]),
+                path=to_str_or_none(row[2]),
+                filename_cleaned=to_str(row[3]),
+                path_pattern=to_str_or_none(row[4]),
+                filename_pattern=to_str(row[5]),
+                studio=to_str_or_none(row[6]),
+                title=to_str_or_none(row[7]),
+                performers=to_str_or_none(row[8]),
+                date=to_str_or_none(row[9]),
+                studio_code=to_str_or_none(row[10]),
+                sequence=json.loads(str(row[11])) if row[11] else None,
+                group=to_str_or_none(row[12]),
+                unlabeled_path_tokens=ast.literal_eval(str(row[13])) if row[13] else None,
+                unlabeled_filename_tokens=ast.literal_eval(str(row[14])) if row[14] else None,
+                match_stats=json.loads(str(row[15])) if row[15] else {}
+            )
+            reference_rows.append(parsed_row)
+    finally:
+        wb.close()
     return reference_rows
 
 
 def calculate_reference_metrics(rows: List[ParsedRow], reference_rows: List[ParsedRow], samples: int = 10) -> Dict[str, Any]:
     """
-    Calculate precision/recall metrics for reference mode.
+    Calculate comprehensive metrics for reference mode.
 
-    Compare parsed results against reference labels.
+    Compare parsed results against reference labels and provide clear, separated metrics.
     """
     total_rows = len(rows)
 
@@ -411,6 +423,12 @@ def calculate_reference_metrics(rows: List[ParsedRow], reference_rows: List[Pars
     # Per-field metrics
     field_metrics = {}
     mismatches = []  # Store sample mismatches
+    total_field_errors = 0
+    files_with_any_errors = set()
+    
+    # Token metrics
+    total_tokens = 0
+    matched_tokens = 0
 
     for field in ['studio', 'performers', 'date', 'studio_code', 'title', 'sequence', 'group']:
         correct = 0
@@ -432,6 +450,7 @@ def calculate_reference_metrics(rows: List[ParsedRow], reference_rows: List[Pars
                     'parsed': parsed_val,
                     'expected': ref_val
                 }
+                files_with_any_errors.add(i)
 
                 if parsed_val is not None and ref_val is None:
                     false_positives.append(mismatch_info)
@@ -440,19 +459,17 @@ def calculate_reference_metrics(rows: List[ParsedRow], reference_rows: List[Pars
                 else:
                     incorrect.append(mismatch_info)
 
-        parsed_non_null = sum(1 for r in rows if getattr(r, field) is not None)
-        reference_non_null = sum(1 for r in reference_rows if getattr(r, field) is not None)
-
-        precision = correct / parsed_non_null if parsed_non_null > 0 else 0.0
-        recall = correct / reference_non_null if reference_non_null > 0 else 0.0
-        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+        # Calculate field errors
+        field_errors = len(false_positives) + len(false_negatives) + len(incorrect)
+        total_field_errors += field_errors
+        
+        # Calculate percentage correct
+        percentage_correct = (correct / total_rows) * 100 if total_rows > 0 else 0.0
 
         field_metrics[field] = {
-            'precision': round(precision, 4),
-            'recall': round(recall, 4),
-            'f1': round(f1, 4),
             'correct': correct,
-            'total': total_rows,
+            'errors': field_errors,
+            'percentage_correct': round(percentage_correct, 1),
             'false_positives': len(false_positives),
             'false_negatives': len(false_negatives),
             'incorrect': len(incorrect)
@@ -466,16 +483,47 @@ def calculate_reference_metrics(rows: List[ParsedRow], reference_rows: List[Pars
         if incorrect:
             mismatches.extend(incorrect[:samples])
 
-    # Overall accuracy
+    # Calculate token metrics
+    for row in rows:
+        total_tokens += row.match_stats.get('filename_tokens', 0) + row.match_stats.get('path_tokens', 0)
+        matched_tokens += row.match_stats.get('matched_tokens', 0)
+
+    token_match_rate = matched_tokens / total_tokens if total_tokens > 0 else 0.0
+
+    # Calculate field-level metrics
     total_field_comparisons = total_rows * 7  # 7 fields
-    total_correct = sum(m['correct'] for m in field_metrics.values())
-    overall_accuracy = total_correct / total_field_comparisons if total_field_comparisons > 0 else 0.0
+    total_correct_fields = sum(m['correct'] for m in field_metrics.values())
+    field_accuracy = total_correct_fields / total_field_comparisons if total_field_comparisons > 0 else 0.0
+    field_error_rate = total_field_errors / total_field_comparisons if total_field_comparisons > 0 else 0.0
+
+    # Calculate file-level metrics
+    files_perfectly_parsed = total_rows - len(files_with_any_errors)
+    perfect_match_rate = files_perfectly_parsed / total_rows if total_rows > 0 else 0.0
 
     return {
         'mode': 'reference',
-        'total_rows': total_rows,
-        'overall_accuracy': round(overall_accuracy, 4),
-        'field_metrics': field_metrics,
+        'summary': {
+            'total_files': total_rows,
+            'total_field_errors': total_field_errors,
+            'files_with_any_errors': len(files_with_any_errors),
+            'files_perfectly_parsed': files_perfectly_parsed
+        },
+        'token_metrics': {
+            'total_tokens': total_tokens,
+            'matched_tokens': matched_tokens,
+            'token_match_rate': round(token_match_rate, 3)
+        },
+        'field_metrics': {
+            'total_field_comparisons': total_field_comparisons,
+            'correct_field_matches': total_correct_fields,
+            'field_accuracy': round(field_accuracy, 3),
+            'field_error_rate': round(field_error_rate, 3)
+        },
+        'file_metrics': {
+            'perfect_match_rate': round(perfect_match_rate, 3),
+            'error_free_rate': round(perfect_match_rate, 3)
+        },
+        'field_breakdown': field_metrics,
         'sample_mismatches': mismatches[:samples * 3],  # Limit total samples
         'timestamp': datetime.now().isoformat()
     }
@@ -643,7 +691,8 @@ def main():
 
     # Read input filenames
     print("\nReading input...")
-    filenames = read_input_file(args.input, args.limit)
+    reference_sheet_name = "Reference" if args.mode == 'reference' else None
+    filenames = read_input_file(args.input, args.limit, sheet_name=reference_sheet_name)
     print(f"Found {len(filenames)} filenames to process")
 
     # Initialize parser
@@ -671,7 +720,7 @@ def main():
     else:
         # Reference mode: load reference data and calculate diff
         print(f"Loading reference data from {args.input}...")
-        reference_rows = load_reference_data(args.input)
+        reference_rows = load_reference_data(args.input, sheet_name="Reference")
 
         print(f"Comparing {len(rows)} parsed rows vs {len(reference_rows)} reference rows...")
         metrics = calculate_reference_metrics(rows, reference_rows, args.samples)
@@ -692,18 +741,42 @@ def main():
             print(f"  {item['pattern']}: {item['count']} occurrences")
     else:
         # Reference mode summary
-        print(f"Total rows: {metrics['total_rows']}")
-        print(f"Overall accuracy: {metrics['overall_accuracy']:.2%}")
-        print("\nPer-field metrics:")
-        for field, field_metrics in metrics['field_metrics'].items():
+        summary = metrics['summary']
+        token_metrics = metrics['token_metrics']
+        field_metrics_summary = metrics['field_metrics']
+        file_metrics = metrics['file_metrics']
+        
+        print(f"=== SUMMARY ===")
+        print(f"Total files: {summary['total_files']}")
+        print(f"Files with any errors: {summary['files_with_any_errors']}")
+        print(f"Files perfectly parsed: {summary['files_perfectly_parsed']}")
+        print(f"Total field errors: {summary['total_field_errors']}")
+        
+        print(f"\n=== TOKEN METRICS ===")
+        print(f"Total tokens: {token_metrics['total_tokens']}")
+        print(f"Matched tokens: {token_metrics['matched_tokens']}")
+        print(f"Token match rate: {token_metrics['token_match_rate']:.1%}")
+        
+        print(f"\n=== FIELD METRICS ===")
+        print(f"Total field comparisons: {field_metrics_summary['total_field_comparisons']}")
+        print(f"Correct field matches: {field_metrics_summary['correct_field_matches']}")
+        print(f"Field accuracy: {field_metrics_summary['field_accuracy']:.1%}")
+        print(f"Field error rate: {field_metrics_summary['field_error_rate']:.1%}")
+        
+        print(f"\n=== FILE METRICS ===")
+        print(f"Perfect match rate: {file_metrics['perfect_match_rate']:.1%}")
+        print(f"Error-free rate: {file_metrics['error_free_rate']:.1%}")
+        
+        print(f"\n=== FIELD BREAKDOWN ===")
+        for field, field_data in metrics['field_breakdown'].items():
             print(f"  {field}:")
-            print(f"    Precision: {field_metrics['precision']:.2%}")
-            print(f"    Recall: {field_metrics['recall']:.2%}")
-            print(f"    F1: {field_metrics['f1']:.2%}")
-            print(f"    Correct: {field_metrics['correct']}/{field_metrics['total']}")
+            print(f"    Correct: {field_data['correct']}/{summary['total_files']}")
+            print(f"    Errors: {field_data['errors']}")
+            print(f"    Percentage correct: {field_data['percentage_correct']:.1f}%")
 
         if metrics.get('sample_mismatches'):
-            print(f"\nSample mismatches (showing up to {args.samples}):")
+            print(f"\n=== SAMPLE MISMATCHES ===")
+            print(f"Showing up to {args.samples} per field:")
             for mismatch in metrics['sample_mismatches'][:5]:
                 print(f"  {mismatch['field']}: {mismatch['input'][:50]}...")
                 print(f"    Expected: {mismatch['expected']}")

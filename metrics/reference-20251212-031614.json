@@ -1,0 +1,225 @@
+{
+  "mode": "reference",
+  "summary": {
+    "total_files": 20,
+    "total_field_errors": 23,
+    "files_with_any_errors": 11,
+    "files_perfectly_parsed": 9
+  },
+  "token_metrics": {
+    "total_tokens": 45,
+    "matched_tokens": 38,
+    "token_match_rate": 0.844
+  },
+  "field_metrics": {
+    "total_field_comparisons": 140,
+    "correct_field_matches": 117,
+    "field_accuracy": 0.836,
+    "field_error_rate": 0.164
+  },
+  "file_metrics": {
+    "perfect_match_rate": 0.45,
+    "error_free_rate": 0.45
+  },
+  "field_breakdown": {
+    "studio": {
+      "correct": 15,
+      "errors": 5,
+      "percentage_correct": 75.0,
+      "false_positives": 0,
+      "false_negatives": 5,
+      "incorrect": 0
+    },
+    "performers": {
+      "correct": 16,
+      "errors": 4,
+      "percentage_correct": 80.0,
+      "false_positives": 2,
+      "false_negatives": 2,
+      "incorrect": 0
+    },
+    "date": {
+      "correct": 20,
+      "errors": 0,
+      "percentage_correct": 100.0,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "incorrect": 0
+    },
+    "studio_code": {
+      "correct": 17,
+      "errors": 3,
+      "percentage_correct": 85.0,
+      "false_positives": 0,
+      "false_negatives": 1,
+      "incorrect": 2
+    },
+    "title": {
+      "correct": 15,
+      "errors": 5,
+      "percentage_correct": 75.0,
+      "false_positives": 1,
+      "false_negatives": 1,
+      "incorrect": 3
+    },
+    "sequence": {
+      "correct": 19,
+      "errors": 1,
+      "percentage_correct": 95.0,
+      "false_positives": 0,
+      "false_negatives": 1,
+      "incorrect": 0
+    },
+    "group": {
+      "correct": 15,
+      "errors": 5,
+      "percentage_correct": 75.0,
+      "false_positives": 5,
+      "false_negatives": 0,
+      "incorrect": 0
+    }
+  },
+  "sample_mismatches": [
+    {
+      "input": "Hard Brit Lads 7 of 7/Theo Reid & Scott Hunter.mp4",
+      "field": "studio",
+      "parsed": null,
+      "expected": "Hard Brit Lads"
+    },
+    {
+      "input": "Hard Brit Lads 7 of 7/Tom Long, Luke Vogel & AJ Alexander.mp4",
+      "field": "studio",
+      "parsed": null,
+      "expected": "Hard Brit Lads"
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "studio",
+      "parsed": null,
+      "expected": "Scary Fuckers"
+    },
+    {
+      "input": "TIM Classics Collection Part1/Bones For Cumpuppy/Scene 1-Cumpuppy Takes Three Loads.mp4",
+      "field": "studio",
+      "parsed": null,
+      "expected": "Treasure Island Media"
+    },
+    {
+      "input": "TIM Classics Collection Part1/Cum Whore/Scene 5-Peto Coast, Steven Daigle, And Marcus Isaacs.mp4",
+      "field": "studio",
+      "parsed": null,
+      "expected": "Treasure Island Media"
+    },
+    {
+      "input": "Hard Brit Lads 7 of 7/Tom Long, Luke Vogel & AJ Alexander.mp4",
+      "field": "performers",
+      "parsed": "Tom Long, Luke Vogel, AJ Alexander",
+      "expected": null
+    },
+    {
+      "input": "TF Part 1 (Individual Scenes)/Julian Ocean & Diego Humbol.mp4",
+      "field": "performers",
+      "parsed": "Julian Ocean, Diego Humbol",
+      "expected": null
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "performers",
+      "parsed": null,
+      "expected": "Jack Wright, Roberto A"
+    },
+    {
+      "input": "TIM Classics Collection Part1/Cum Whore/Scene 5-Peto Coast, Steven Daigle, And Marcus Isaacs.mp4",
+      "field": "performers",
+      "parsed": null,
+      "expected": "Peto Coast, Steven Daigle, Marcus Isaacs"
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "studio_code",
+      "parsed": null,
+      "expected": "8494-02"
+    },
+    {
+      "input": "Corbin Fisher - ACM3190 - Rocky & Alex.mp4",
+      "field": "studio_code",
+      "parsed": "ACM3190",
+      "expected": "3190"
+    },
+    {
+      "input": "SC-0161 - Ethan & Trevor.wmv",
+      "field": "studio_code",
+      "parsed": "SC-0161",
+      "expected": "161"
+    },
+    {
+      "input": "[3D SBS]SexScenes-Primetime 1080P-Austin, Jack and Alex.mp4",
+      "field": "title",
+      "parsed": "SexScenes-Primetime",
+      "expected": null
+    },
+    {
+      "input": "TIM Classics Collection Part1/Bones For Cumpuppy/Scene 1-Cumpuppy Takes Three Loads.mp4",
+      "field": "title",
+      "parsed": null,
+      "expected": "Cumpuppy Takes Three Loads"
+    },
+    {
+      "input": "[ Eurocreme ] BAREBACK TWINK STREET.2.avi",
+      "field": "title",
+      "parsed": "BAREBACK TWINK STREET.2",
+      "expected": "Bareback Twink Street"
+    },
+    {
+      "input": "crunchboy.com PART 1/[Crunchboy] 2 potes d'enfance dans la m\u00eame bain (movie).mp4",
+      "field": "title",
+      "parsed": "2 potes d'enfance dans la m\u00eame bain movie",
+      "expected": "2 potes d'enfance dans la m\u00eame bain"
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "title",
+      "parsed": "Jack Wright & Roberto A",
+      "expected": "Monster Cock Breeders"
+    },
+    {
+      "input": "[ Eurocreme ] BAREBACK TWINK STREET.2.avi",
+      "field": "sequence",
+      "parsed": null,
+      "expected": {
+        "title": 2
+      }
+    },
+    {
+      "input": "crunchboy.com PART 1/[Crunchboy] 2 potes d'enfance dans la m\u00eame bain (movie).mp4",
+      "field": "group",
+      "parsed": "crunchboy.com PART 1",
+      "expected": null
+    },
+    {
+      "input": "Hard Brit Lads 7 of 7/Theo Reid & Scott Hunter.mp4",
+      "field": "group",
+      "parsed": "Hard Brit Lads 7 of 7",
+      "expected": null
+    },
+    {
+      "input": "Hard Brit Lads 7 of 7/Tom Long, Luke Vogel & AJ Alexander.mp4",
+      "field": "group",
+      "parsed": "Hard Brit Lads 7 of 7",
+      "expected": null
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "group",
+      "parsed": "ScaryFuckers.com Collection ",
+      "expected": null
+    },
+    {
+      "input": "TF Part 1 (Individual Scenes)/Julian Ocean & Diego Humbol.mp4",
+      "field": "group",
+      "parsed": "TF Part 1 (Individual Scenes)",
+      "expected": null
+    }
+  ],
+  "timestamp": "2025-12-12T03:16:14.950788"
+}

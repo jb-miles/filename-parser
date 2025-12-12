@@ -12,6 +12,17 @@
 - **New Fields**: Structured extraction for title, series, volume, part, scene
 - **Path Intelligence**: Directory structure metadata promoted to structured fields
 - **Quality Assurance**: Evaluation harness preventing regressions
+## Workflow
+- [ ] Before starting each stage, validate that the stage plan still fits current project needs; adjust scope or tasks if misaligned.
+- [ ] At the start of each stage iteration, run the unit test suite and evaluate the parser in reference mode to capture a baseline snapshot (save metrics artifacts).
+- [ ] After any module change, rerun the evaluation harness in reference mode, log precision/recall deltas per field, and note regressions or improvements.
+- [ ] Document extraction coverage changes against the baseline with concrete examples.
+- [ ] Write or update comprehensive user-facing and developer documentation describing the behavior change, rationale, and example inputs/outputs.
+- [ ] Review token pattern distributions to uncover new edge cases or anomalies and queue follow-up fixes if needed.
+- [ ] Run end-to-end integration tests across the full pipeline to confirm downstream extractors remain stable.
+- [ ] Commit metrics artifacts (JSON/Excel outputs) and notes alongside the code to preserve history and ease stage retrospectives.
+- [ ] At the end of each stage, verify the learned results remain accurate (no loss of previously correct matches) and that the stage-specific deliverables are fully achieved.
+
 
 ## Stage Checklist (links to detailed plans)
 - [ ] Stage 0: Parallel Path + Filename Pipelines [[stage-0-architecture-split]]
