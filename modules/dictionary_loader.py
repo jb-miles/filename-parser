@@ -7,9 +7,8 @@ error handling and optional caching to avoid redundant file reads.
 """
 
 import json
-import os
-from typing import Any, Dict, Optional
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 class DictionaryLoader:
@@ -19,7 +18,7 @@ class DictionaryLoader:
     _cache: Dict[str, Dict[str, Any]] = {}
 
     @staticmethod
-    def get_dictionary_path(dictionary_name: str = "parser-dictionary.json") -> str:
+    def get_dictionary_path(dictionary_name: str = "parser-dictionary.json") -> Path:
         """
         Get the absolute path to a dictionary file.
 
@@ -29,12 +28,7 @@ class DictionaryLoader:
         Returns:
             Absolute path to the dictionary file
         """
-        return os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "dictionaries",
-            dictionary_name
-        )
+        return Path(__file__).resolve().parent.parent / "dictionaries" / dictionary_name
 
     @classmethod
     def load_dictionary(
@@ -121,6 +115,7 @@ class DictionaryLoader:
         dictionaries = [
             "parser-dictionary.json",  # Used by tokenizer, pre_tokenizer, performer_matcher, trimmer, studio_code_finder
             "studios.json",             # Used by studio_matcher
+            "studio_aliases.json",      # Used by studio_matcher for normalization
             "performer_aliases.json",   # Used by performer_matcher (future)
             "date_formats.json"         # Used by date_extractor
         ]

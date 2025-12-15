@@ -40,17 +40,17 @@ def test_json_structure(pre_tokenizer):
     ("Video.HD.avi", "Video.HD.avi", "Video"),
     ("Movie.mkv", "Movie.mkv", "Movie"),
 ])
-def test_extension_removal(pre_tokenizer, filename, expected_original, expected_cleaned):
-    """Test that file extensions are properly removed."""
+def test_extension_handling(pre_tokenizer, filename, expected_original, expected_cleaned):
+    """Extensions are stripped via pathlib stem without explicit removal tokens."""
     result = pre_tokenizer.process(filename)
     parsed = json.loads(result.to_json())
     
     assert parsed["original"] == expected_original
     assert parsed["cleaned"] == expected_cleaned
     
-    # Check that extension was removed
+    # Extensions should not be recorded as removed tokens
     removed_values = [token["value"] for token in parsed["removed_tokens"]]
-    assert any(ext in removed_values for ext in [".mp4", ".avi", ".mkv"])
+    assert not any(val.startswith(".") for val in removed_values)
 
 
 @pytest.mark.parametrize("filename,expected_original,expected_cleaned", [
@@ -314,7 +314,6 @@ def test_default_early_removal_categories(pre_tokenizer):
     
     # Check for specific categories
     category_names = [cat.name for cat in categories]
-    assert "extension_mp4" in category_names
     assert "resolution_720p" in category_names
     assert "quality_HQ" in category_names
     
@@ -330,7 +329,7 @@ def test_default_early_removal_categories(pre_tokenizer):
 
 
 @pytest.mark.parametrize("filename,expected_cleaned", [
-    ("Video\u2013480p.avi", "Video-"),  # En dash
+    ("Video\u2013480p.avi", "Video"),  # En dash
     ("Test\u2026File.mp4", "Test...File"),  # Ellipsis
     ("Space\u00a0Here.mp4", "Space Here"),  # Non-breaking space
 ])
@@ -356,8 +355,8 @@ def test_empty_and_edge_cases(pre_tokenizer):
     result = pre_tokenizer.process(".mp4")
     parsed = json.loads(result.to_json())
     assert parsed["original"] == ".mp4"
-    assert parsed["cleaned"] == ""
-    assert len(parsed["removed_tokens"]) == 1
+    assert parsed["cleaned"] == "mp4"
+    assert len(parsed["removed_tokens"]) == 0
     
     # Only replacement characters
     result = pre_tokenizer.process("()[]")
@@ -389,30 +388,30 @@ def test_pre_tokenization_result_dataclass():
     from modules import PreTokenizationResult, RemovedToken
     
     removed_token = RemovedToken(
-        value=".mp4",
-        category="extension",
+        value="720p",
+        category="resolution",
         position=10,
         confidence=1.0
     )
     
     result = PreTokenizationResult(
-        original="Scene.720p.mp4",
-        cleaned="Scene.720p",
+        original="Scene.720p",
+        cleaned="Scene",
         removed_tokens=[removed_token]
     )
     
-    assert result.original == "Scene.720p.mp4"
-    assert result.cleaned == "Scene.720p"
+    assert result.original == "Scene.720p"
+    assert result.cleaned == "Scene"
     assert len(result.removed_tokens) == 1
-    assert result.removed_tokens[0].value == ".mp4"
+    assert result.removed_tokens[0].value == "720p"
     
     # Test JSON serialization
     json_str = result.to_json()
     parsed = json.loads(json_str)
-    assert parsed["original"] == "Scene.720p.mp4"
-    assert parsed["cleaned"] == "Scene.720p"
+    assert parsed["original"] == "Scene.720p"
+    assert parsed["cleaned"] == "Scene"
     assert len(parsed["removed_tokens"]) == 1
-    assert parsed["removed_tokens"][0]["value"] == ".mp4"
+    assert parsed["removed_tokens"][0]["value"] == "720p"
 
 
 def test_early_removal_category_dataclass():
@@ -450,7 +449,7 @@ def test_whitespace_handling_no_underscores(pre_tokenizer):
     # Should not have review flag
     removed_values = [token["value"] for token in parsed["removed_tokens"]]
     assert "REVIEW_FLAG" not in removed_values
-    assert len(parsed["removed_tokens"]) == 3
+    assert len(parsed["removed_tokens"]) == 2
 
 
 @pytest.mark.parametrize("filename,expected_original,expected_cleaned", [

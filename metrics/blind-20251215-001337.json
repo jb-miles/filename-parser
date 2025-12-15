@@ -1,0 +1,101 @@
+{
+  "mode": "blind",
+  "total_rows": 261,
+  "field_coverage": {
+    "studio": 0.4099616858237548,
+    "performers": 0.27586206896551724,
+    "date": 0.022988505747126436,
+    "studio_code": 0.0,
+    "title": 0.9157088122605364,
+    "sequence": 0.08812260536398467,
+    "group": 1.0
+  },
+  "avg_match_rate": 1.0,
+  "pattern_histogram": [
+    {
+      "pattern": "{title}",
+      "count": 127
+    },
+    {
+      "pattern": "{studio} {title}",
+      "count": 38
+    },
+    {
+      "pattern": "{studio} {title} {performers}",
+      "count": 23
+    },
+    {
+      "pattern": "{performers}",
+      "count": 12
+    },
+    {
+      "pattern": "{studio} {performers} {title}",
+      "count": 11
+    },
+    {
+      "pattern": "{studio} {title} {sequence} {performers}",
+      "count": 7
+    },
+    {
+      "pattern": "{title} {title}",
+      "count": 7
+    },
+    {
+      "pattern": "{studio} {title} {title}",
+      "count": 6
+    },
+    {
+      "pattern": "{studio} {title} {date}",
+      "count": 4
+    },
+    {
+      "pattern": "{studio} {performers}",
+      "count": 4
+    },
+    {
+      "pattern": "{title} {title} {performers}",
+      "count": 3
+    },
+    {
+      "pattern": "{studio} {performers} {title} {sequence}",
+      "count": 2
+    },
+    {
+      "pattern": "{studio} {performers} {sequence} {title}",
+      "count": 2
+    },
+    {
+      "pattern": "{sequence}",
+      "count": 2
+    },
+    {
+      "pattern": "{title} {date}",
+      "count": 2
+    },
+    {
+      "pattern": "{studio} {title} {performers} {title}",
+      "count": 2
+    },
+    {
+      "pattern": "{studio} {performers} {sequence}",
+      "count": 2
+    },
+    {
+      "pattern": "{studio} {title} {title} {performers}",
+      "count": 1
+    },
+    {
+      "pattern": "{studio} {sequence}",
+      "count": 1
+    },
+    {
+      "pattern": "{studio} {title} {sequence} {title} {title}",
+      "count": 1
+    }
+  ],
+  "anomalies": {
+    "rows_with_unlabeled_tokens": 0,
+    "total_unlabeled_tokens": 0
+  },
+  "timestamp": "2025-12-15T00:13:37.888038"
+}

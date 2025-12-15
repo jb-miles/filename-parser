@@ -131,9 +131,6 @@ class SequenceExtractor:
             if len(path_parts) > 0:
                 parent_dir = path_parts[-1] if path_parts[-1] else (path_parts[-2] if len(path_parts) > 1 else None)
                 if parent_dir:
-                    # Store as group
-                    result.group = parent_dir
-
                     # Also check for volume in parent directory
                     vol_seq = self.extract_from_token(parent_dir, studio)
                     if vol_seq and 'volume' in vol_seq:

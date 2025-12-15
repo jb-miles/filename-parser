@@ -27,58 +27,84 @@ class StudioCodeFinder:
             return
 
         for studio_code in studio_codes:
-            code = studio_code.get('code', '')
-            studio = studio_code.get('studio', '')
-            if not code or not studio:
+            pattern = studio_code.get('regex') or studio_code.get('code', '')
+            if not pattern:
                 continue
 
-            regex = self._pattern_to_regex(code)
+            allow_suffix = bool(studio_code.get('allow_suffix'))
+            regex = self._pattern_to_regex(
+                pattern,
+                is_regex=bool(studio_code.get('regex')),
+                allow_suffix=allow_suffix
+            )
             if not regex:
                 continue
 
             self.studio_code_patterns.append((
                 regex,
                 {
-                    'studio': studio,
-                    'pattern': code
+                    'studio': studio_code.get('studio'),
+                    'pattern': pattern,
+                    'normalize': studio_code.get('normalize') or {},
+                    'code_group': studio_code.get('code_group', 1 if allow_suffix else 0)
                 }
             ))
 
-    def _pattern_to_regex(self, pattern: str) -> Optional[Pattern]:
+    def _pattern_to_regex(
+        self,
+        pattern: str,
+        is_regex: bool = False,
+        allow_suffix: bool = False
+    ) -> Optional[Pattern]:
         """
         Convert a code pattern with '#' placeholders into a compiled regex.
         '#' characters represent digits; other characters are escaped literally.
+        When allow_suffix is True, trailing non-alphanumeric suffixes are permitted
+        (e.g., resolution markers), and the base pattern is captured in group 1.
         """
-        parts: List[str] = []
-        i = 0
-        length = len(pattern)
+        if is_regex:
+            inner = pattern
+            if inner.startswith("^"):
+                inner = inner[1:]
+            if inner.endswith("$"):
+                inner = inner[:-1]
+            regex_str = rf"^({inner})(?:[^A-Za-z0-9].*)?$" if allow_suffix else f"^{inner}$"
+        else:
+            parts: List[str] = []
+            i = 0
+            length = len(pattern)
 
-        while i < length:
-            char = pattern[i]
+            while i < length:
+                char = pattern[i]
 
-            # Treat escaped characters as literals (e.g., "\#" -> "#")
-            if char == '\\' and i + 1 < length:
-                parts.append(re.escape(pattern[i + 1]))
-                i += 2
-                continue
+                # Treat escaped characters as literals (e.g., "\#" -> "#")
+                if char == '\\' and i + 1 < length:
+                    parts.append(re.escape(pattern[i + 1]))
+                    i += 2
+                    continue
 
-            # Consecutive # represent digits
-            if char == '#':
-                j = i
-                while j < length and pattern[j] == '#':
-                    j += 1
-                parts.append(rf"\d{{{j - i}}}")
-                i = j
-                continue
+                # Consecutive # represent digits
+                if char == '#':
+                    j = i
+                    while j < length and pattern[j] == '#':
+                        j += 1
+                    parts.append(rf"\d{{{j - i}}}")
+                    i = j
+                    continue
 
-            # Default: escape literal character
-            parts.append(re.escape(char))
-            i += 1
+                # Default: escape literal character
+                parts.append(re.escape(char))
+                i += 1
 
-        if not parts:
-            return None
+            if not parts:
+                return None
 
-        regex_str = "^" + "".join(parts) + "$"
+            base_pattern = "".join(parts)
+            if allow_suffix:
+                regex_str = rf"^({base_pattern})(?:[^A-Za-z0-9].*)?$"
+            else:
+                regex_str = "^" + base_pattern + "$"
+
         try:
             return re.compile(regex_str, re.IGNORECASE)
         except re.error:
@@ -133,14 +159,47 @@ class StudioCodeFinder:
         normalized_value = token_value.strip()
 
         for regex, info in self.studio_code_patterns:
-            if regex.match(normalized_value):
-                # Preserve the original token value as the code
+            match = regex.match(normalized_value)
+            if match:
+                group_idx = info.get('code_group', 0) or 0
+                try:
+                    raw_code = match.group(group_idx)
+                except IndexError:
+                    raw_code = match.group(0)
+
+                normalized_code = self._normalize_code(raw_code, info.get('normalize') or {})
+                code_value = normalized_code or raw_code
                 return {
-                    'studio': info['studio'],
-                    'code': token_value
+                    'studio': info.get('studio'),
+                    'code': code_value
                 }
 
         return None
+
+    def _normalize_code(self, code_value: str, normalize: Dict[str, bool]) -> str:
+        """
+        Normalize a raw code value using rules from the dictionary entry.
+        """
+        code = code_value.strip()
+        if not normalize:
+            return code
+
+        if normalize.get('strip_prefix_letters'):
+            code = re.sub(r'^[A-Za-z]+[-_\s]*', '', code)
+
+        if normalize.get('replace_underscores_with_dash'):
+            code = code.replace('_', '-').replace(' ', '-')
+
+        if normalize.get('digits_only'):
+            code = re.sub(r'\D', '', code)
+
+        if normalize.get('strip_leading_zeros'):
+            code = code.lstrip('0') or "0"
+
+        if normalize.get('uppercase'):
+            code = code.upper()
+
+        return code
 
     def _update_tokens_and_pattern(
         self,
@@ -186,8 +245,14 @@ class StudioCodeFinder:
         studio_value = result.studio
         if not studio_value:
             # Take the first matched studio name
+            first_match = next((match for match in studio_code_matches.values() if match.get('studio')), None)
+            if first_match:
+                studio_value = first_match.get('studio')
+
+        studio_code_value = getattr(result, "studio_code", None)
+        if not studio_code_value:
             first_match = next(iter(studio_code_matches.values()))
-            studio_value = first_match.get('studio')
+            studio_code_value = first_match.get('code')
 
         # Return new result with updated tokens and pattern
         return TokenizationResult(
@@ -195,7 +260,13 @@ class StudioCodeFinder:
             cleaned=result.cleaned,
             pattern=new_pattern,
             tokens=new_tokens,
-            studio=studio_value
+            studio=studio_value,
+            title=result.title,
+            sequence=result.sequence,
+            group=result.group,
+            studio_code=studio_code_value,
+            sources=result.sources,
+            confidences=result.confidences
         )
 
     def _rebuild_pattern(

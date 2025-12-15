@@ -6,6 +6,8 @@ This package contains the core processing modules:
 - tokenizer: Token extraction and pattern recognition
 - date_extractor: Date extraction and normalization
 - trimmer: String trimming utilities
+- path_parser: Path isolation and normalization
+ - resolver: Path/basename merge with telemetry
 - studio_matcher: Studio name matching
 - studio_code_finder: Studio code identification
 - performer_matcher: Performer name pattern matching
@@ -21,6 +23,8 @@ from .pre_tokenizer import (
     RemovedToken,
     EarlyRemovalCategory
 )
+from .path_parser import PathParser, PathParseResult
+from .resolver import PathFilenameResolver
 from .date_extractor import DateExtractor, DateMatch
 from .studio_matcher import StudioMatcher
 from .studio_code_finder import StudioCodeFinder
@@ -36,6 +40,9 @@ __all__ = [
     'PreTokenizationResult',
     'RemovedToken',
     'EarlyRemovalCategory',
+    'PathParser',
+    'PathParseResult',
+    'PathFilenameResolver',
     'DateExtractor',
     'DateMatch',
     'StudioMatcher',

@@ -4,7 +4,7 @@ Tests for date extraction normalization to ISO 8601.
 """
 
 import pytest
-from parser import FilenameParser
+from yansa import FilenameParser
 
 
 @pytest.fixture

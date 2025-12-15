@@ -494,7 +494,7 @@ pip install openpyxl
 ## Related Files
 
 - [plans/stage-1-evaluation-harness.md](plans/stage-1-evaluation-harness.md) - Implementation plan and decisions
-- [parser.py](parser.py) - Main parser with pipeline
+- [yansa.py](yansa.py) - Main parser with pipeline
 - [modules/sequence_extractor.py](modules/sequence_extractor.py) - Sequence and group extraction
 - [modules/title_extractor.py](modules/title_extractor.py) - Title extraction
 

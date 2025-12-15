@@ -7,6 +7,7 @@ Handles early removal of tokens from filenames.
 import re
 import json
 import unicodedata
+from pathlib import Path
 from dataclasses import dataclass
 from typing import List, Optional
 from .trimmer import Trimmer
@@ -66,13 +67,18 @@ class PreTokenizer:
     def __init__(self, dictionary_path: Optional[str] = None):
         # If no path provided, Trimmer will use its default path
         self.trimmer = Trimmer(dictionary_path)
+        config = DictionaryLoader.load_dictionary('parser-dictionary.json') or {}
+        self.extensions = [ext.lower() for ext in config.get('extensions', [])]
         self.early_removal_categories = self._default_early_removal_categories()
 
     def process(self, filename: str) -> PreTokenizationResult:
         """Process filename by removing early removal tokens."""
+        path_obj = Path(filename)
+        basename = path_obj.name
+
         result = PreTokenizationResult(
             original=filename,
-            cleaned=filename,
+            cleaned=basename,
             removed_tokens=[]
         )
 
@@ -88,6 +94,12 @@ class PreTokenizer:
         
         # Step 4: Handle whitespace (underscores)
         result = self._apply_whitespace_handling(result)
+
+        # Step 5: Strip a single known extension using pathlib (no removed token)
+        result.cleaned = self._strip_known_extension(result.cleaned)
+
+        # Final pass: trim leftover wrapping/punctuation after extension stripping
+        result.cleaned = self.trimmer.trim(result.cleaned)
 
         return result
 
@@ -214,16 +226,23 @@ class PreTokenizer:
         
         return result
 
+    def _strip_known_extension(self, text: str) -> str:
+        """Remove the final suffix if it matches a known extension."""
+        path_obj = Path(text)
+        suffix = path_obj.suffix.lower().lstrip(".")
+        if suffix and suffix in self.extensions:
+            return path_obj.stem
+        return text
+
     def _default_early_removal_categories(self) -> List[EarlyRemovalCategory]:
         """Define default early removal detection rules by loading from JSON config.
 
         Processing order:
-        1. File extensions first (remove .mp4, .avi, etc. anywhere)
-        2. Resolution markers second (remove 480p, 720p, etc. with touching rule)
-        3. Quality markers (remove HQ, UHD, etc.)
-        4. Source markers (remove DVD-rip, etc.)
-        5. Format markers (remove 3D-SBS, etc.)
-        6. Misc markers (remove original size, etc.)
+        1. Resolution markers (remove 480p, 720p, etc. with touching rule)
+        2. Quality markers (remove HQ, UHD, etc.)
+        3. Source markers (remove DVD-rip, etc.)
+        4. Format markers (remove 3D-SBS, etc.)
+        5. Misc markers (remove original size, etc.)
         """
 
         categories = []
@@ -231,24 +250,7 @@ class PreTokenizer:
         # Load configuration from JSON file
         config = DictionaryLoader.load_dictionary('parser-dictionary.json') or {}
 
-        # STEP 1: File extensions (remove anywhere, no touching rule needed)
-        extensions = config.get('extensions', [])
-
-        for ext in extensions:
-            # Pattern: literal period + extension
-            # We escape the period so it matches literal '.' not any character
-            pattern = re.compile(rf'(\.{ext})')
-
-            categories.append(EarlyRemovalCategory(
-                name=f"extension_{ext}",
-                description=f"Remove '.{ext}' extension anywhere",
-                pattern=pattern,
-                position="anywhere",
-                confidence=1.0,
-                semantic_role="technical"
-            ))
-
-        # STEP 2: Resolution markers (remove only when NOT touching letters/numbers)
+        # STEP 1: Resolution markers (remove only when NOT touching letters/numbers)
         resolution_markers = config.get('resolution_markers', [])
 
         for marker in resolution_markers:

@@ -1,0 +1,266 @@
+{
+  "mode": "reference",
+  "key_metrics": {
+    "pattern_match_rate": 25.0,
+    "metadata_false_negative_rate": 20.41,
+    "metadata_false_positive_rate": 7.69,
+    "metadata_accuracy_rate": 67.35,
+    "parsed_perfect_rate": 45.0
+  },
+  "summary": {
+    "total_files": 20,
+    "pattern_matches": 5,
+    "files_perfectly_parsed": 9,
+    "false_negative_opportunities": 49,
+    "false_negatives": 10,
+    "false_positive_opportunities": 91,
+    "false_positives": 7,
+    "accuracy_opportunities": 49,
+    "accurate_matches": 33
+  },
+  "field_breakdown": {
+    "studio": {
+      "false_negative_rate": 29.41,
+      "false_negative_count": 5,
+      "false_negative_opportunities": 17,
+      "false_positive_rate": 0.0,
+      "false_positive_count": 0,
+      "false_positive_opportunities": 3,
+      "accuracy_rate": 70.59,
+      "accurate_count": 12,
+      "accuracy_opportunities": 17
+    },
+    "performers": {
+      "false_negative_rate": 16.67,
+      "false_negative_count": 2,
+      "false_negative_opportunities": 12,
+      "false_positive_rate": 25.0,
+      "false_positive_count": 2,
+      "false_positive_opportunities": 8,
+      "accuracy_rate": 83.33,
+      "accurate_count": 10,
+      "accuracy_opportunities": 12
+    },
+    "date": {
+      "false_negative_rate": 0.0,
+      "false_negative_count": 0,
+      "false_negative_opportunities": 3,
+      "false_positive_rate": 0.0,
+      "false_positive_count": 0,
+      "false_positive_opportunities": 17,
+      "accuracy_rate": 100.0,
+      "accurate_count": 3,
+      "accuracy_opportunities": 3
+    },
+    "studio_code": {
+      "false_negative_rate": 33.33,
+      "false_negative_count": 1,
+      "false_negative_opportunities": 3,
+      "false_positive_rate": 0.0,
+      "false_positive_count": 0,
+      "false_positive_opportunities": 17,
+      "accuracy_rate": 0.0,
+      "accurate_count": 0,
+      "accuracy_opportunities": 3
+    },
+    "title": {
+      "false_negative_rate": 12.5,
+      "false_negative_count": 1,
+      "false_negative_opportunities": 8,
+      "false_positive_rate": 0.0,
+      "false_positive_count": 0,
+      "false_positive_opportunities": 12,
+      "accuracy_rate": 37.5,
+      "accurate_count": 3,
+      "accuracy_opportunities": 8
+    },
+    "sequence": {
+      "false_negative_rate": 25.0,
+      "false_negative_count": 1,
+      "false_negative_opportunities": 4,
+      "false_positive_rate": 0.0,
+      "false_positive_count": 0,
+      "false_positive_opportunities": 16,
+      "accuracy_rate": 75.0,
+      "accurate_count": 3,
+      "accuracy_opportunities": 4
+    },
+    "group": {
+      "false_negative_rate": 0.0,
+      "false_negative_count": 0,
+      "false_negative_opportunities": 2,
+      "false_positive_rate": 27.78,
+      "false_positive_count": 5,
+      "false_positive_opportunities": 18,
+      "accuracy_rate": 100.0,
+      "accurate_count": 2,
+      "accuracy_opportunities": 2
+    }
+  },
+  "sample_mismatches": [
+    {
+      "input": "Hard Brit Lads 7 of 7/Theo Reid & Scott Hunter.mp4",
+      "field": "studio",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": "Hard Brit Lads"
+    },
+    {
+      "input": "Hard Brit Lads 7 of 7/Tom Long, Luke Vogel & AJ Alexander.mp4",
+      "field": "studio",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": "Hard Brit Lads"
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "studio",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": "Scary Fuckers"
+    },
+    {
+      "input": "TIM Classics Collection Part1/Bones For Cumpuppy/Scene 1-Cumpuppy Takes Three Loads.mp4",
+      "field": "studio",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": "Treasure Island Media"
+    },
+    {
+      "input": "TIM Classics Collection Part1/Cum Whore/Scene 5-Peto Coast, Steven Daigle, And Marcus Isaacs.mp4",
+      "field": "studio",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": "Treasure Island Media"
+    },
+    {
+      "input": "Hard Brit Lads 7 of 7/Tom Long, Luke Vogel & AJ Alexander.mp4",
+      "field": "performers",
+      "type": "false_positive",
+      "parsed": "Tom Long, Luke Vogel, AJ Alexander",
+      "expected": null
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "performers",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": "Jack Wright, Roberto A"
+    },
+    {
+      "input": "TF Part 1 (Individual Scenes)/Julian Ocean & Diego Humbol.mp4",
+      "field": "performers",
+      "type": "false_positive",
+      "parsed": "Julian Ocean, Diego Humbol",
+      "expected": null
+    },
+    {
+      "input": "TIM Classics Collection Part1/Cum Whore/Scene 5-Peto Coast, Steven Daigle, And Marcus Isaacs.mp4",
+      "field": "performers",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": "Peto Coast, Steven Daigle, Marcus Isaacs"
+    },
+    {
+      "input": "Corbin Fisher - ACM3190 - Rocky & Alex.mp4",
+      "field": "studio_code",
+      "type": "incorrect",
+      "parsed": "ACM3190",
+      "expected": "3190"
+    },
+    {
+      "input": "SC-0161 - Ethan & Trevor.wmv",
+      "field": "studio_code",
+      "type": "incorrect",
+      "parsed": "SC-0161",
+      "expected": "161"
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "studio_code",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": "8494-02"
+    },
+    {
+      "input": "[ Eurocreme ] BAREBACK TWINK STREET.2.avi",
+      "field": "title",
+      "type": "incorrect",
+      "parsed": "BAREBACK TWINK STREET.2",
+      "expected": "Bareback Twink Street"
+    },
+    {
+      "input": "(2005) Eurocreme - RAW Films - Raw Edge (720p)).mp4",
+      "field": "title",
+      "type": "incorrect",
+      "parsed": "RAW Films Raw Edge",
+      "expected": "Raw Edge"
+    },
+    {
+      "input": "crunchboy.com PART 1/[Crunchboy] 2 potes d'enfance dans la m\u00eame bain (movie).mp4",
+      "field": "title",
+      "type": "incorrect",
+      "parsed": "2 potes d'enfance dans la m\u00eame bain movie",
+      "expected": "2 potes d'enfance dans la m\u00eame bain"
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "title",
+      "type": "incorrect",
+      "parsed": "Jack Wright & Roberto A",
+      "expected": "Monster Cock Breeders"
+    },
+    {
+      "input": "TIM Classics Collection Part1/Bones For Cumpuppy/Scene 1-Cumpuppy Takes Three Loads.mp4",
+      "field": "title",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": "Cumpuppy Takes Three Loads"
+    },
+    {
+      "input": "[ Eurocreme ] BAREBACK TWINK STREET.2.avi",
+      "field": "sequence",
+      "type": "false_negative",
+      "parsed": null,
+      "expected": {
+        "title": 2
+      }
+    },
+    {
+      "input": "crunchboy.com PART 1/[Crunchboy] 2 potes d'enfance dans la m\u00eame bain (movie).mp4",
+      "field": "group",
+      "type": "false_positive",
+      "parsed": "crunchboy.com PART 1",
+      "expected": null
+    },
+    {
+      "input": "Hard Brit Lads 7 of 7/Theo Reid & Scott Hunter.mp4",
+      "field": "group",
+      "type": "false_positive",
+      "parsed": "Hard Brit Lads 7 of 7",
+      "expected": null
+    },
+    {
+      "input": "Hard Brit Lads 7 of 7/Tom Long, Luke Vogel & AJ Alexander.mp4",
+      "field": "group",
+      "type": "false_positive",
+      "parsed": "Hard Brit Lads 7 of 7",
+      "expected": null
+    },
+    {
+      "input": "ScaryFuckers.com Collection 1080p/8494_02_1080p Monster Cock Breeders, Scene #02 (Jack Wright & Roberto A).mp4",
+      "field": "group",
+      "type": "false_positive",
+      "parsed": "ScaryFuckers.com Collection 1080p",
+      "expected": null
+    },
+    {
+      "input": "TF Part 1 (Individual Scenes)/Julian Ocean & Diego Humbol.mp4",
+      "field": "group",
+      "type": "false_positive",
+      "parsed": "TF Part 1 (Individual Scenes)",
+      "expected": null
+    }
+  ],
+  "timestamp": "2025-12-12T06:16:50.366822"
+}

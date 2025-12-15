@@ -9,7 +9,7 @@ as a dedicated path token ahead of other tokens.
 import re
 import json
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Dict
 from .trimmer import Trimmer
 from .dictionary_loader import DictionaryLoader
 
@@ -33,6 +33,9 @@ class TokenizationResult:
     title: Optional[str] = None
     sequence: Optional[dict] = None  # e.g., {"part": 2, "scene": 1, "title": 3}
     group: Optional[str] = None  # Parent directory / collection bucket
+    studio_code: Optional[str] = None  # Parsed studio code value
+    sources: Optional[Dict[str, str]] = None  # Telemetry: path vs filename
+    confidences: Optional[Dict[str, float]] = None  # Field-level confidence scores
     
     def to_json(self) -> str:
         """Convert result to JSON format."""
@@ -64,6 +67,10 @@ class TokenizationResult:
         }
         if self.studio:
             json_data["studio"] = self.studio
+        if self.sources:
+            json_data["sources"] = self.sources
+        if self.confidences:
+            json_data["confidences"] = self.confidences
         return json.dumps(json_data)
 
 

@@ -1,0 +1,15 @@
+{
+  "processing": {
+    "batch_size": 50,
+    "confidence_threshold": 0.8,
+    "auto_apply": true,
+    "include_path_in_filename": false,
+    "max_scenes": null
+  },
+  "conflicts": {
+    "mark_organized": false
+  },
+  "ui": {
+    "sort_by": "filename"
+  }
+}

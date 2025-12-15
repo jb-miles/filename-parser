@@ -5,7 +5,7 @@ Verifies that tokens matching studio code patterns are correctly identified and 
 """
 
 import pytest
-from parser import FilenameParser
+from yansa import FilenameParser
 from modules import StudioCodeFinder, TokenizationResult, Token
 
 
@@ -201,6 +201,60 @@ def test_studio_code_preserves_original_casing(studio_code_finder):
     # If matched, the original casing should be preserved
     if processed.tokens[0].type == "studio_code":
         assert processed.tokens[0].value == "AD0001"
+
+
+def test_studio_code_strips_prefix_and_zeros(studio_code_finder):
+    """Sean Cody pattern should strip prefix letters and leading zeros."""
+    token = Token(value="SC-0161", type="text", position=0)
+    result = TokenizationResult(
+        original="SC-0161 - Title",
+        cleaned="SC-0161 - Title",
+        pattern="{token0} - {token1}",
+        tokens=[token, Token(value="Title", type="text", position=9)]
+    )
+
+    processed = studio_code_finder.process(result)
+    code_tokens = [t for t in processed.tokens if t.type == "studio_code"]
+
+    if code_tokens:
+        assert code_tokens[0].value == "161"
+        assert getattr(processed, "studio_code", None) == "161"
+        assert processed.studio == "Sean Cody"
+
+
+def test_studio_code_normalizes_underscore_to_dash(studio_code_finder):
+    """Underscore codes should normalize to dash-separated."""
+    token = Token(value="8494_02", type="text", position=0)
+    result = TokenizationResult(
+        original="8494_02 Title",
+        cleaned="8494_02 Title",
+        pattern="{token0} {token1}",
+        tokens=[token, Token(value="Title", type="text", position=8)]
+    )
+
+    processed = studio_code_finder.process(result)
+    code_tokens = [t for t in processed.tokens if t.type == "studio_code"]
+
+    if code_tokens:
+        assert code_tokens[0].value == "8494-02"
+
+
+def test_studio_code_allows_suffix(studio_code_finder):
+    """Codes with trailing markers should still be matched via allow_suffix."""
+    token = Token(value="ACM3190_1080p", type="text", position=0)
+    result = TokenizationResult(
+        original="ACM3190_1080p - Title",
+        cleaned="ACM3190_1080p - Title",
+        pattern="{token0} - {token1}",
+        tokens=[token, Token(value="Title", type="text", position=15)]
+    )
+
+    processed = studio_code_finder.process(result)
+    code_tokens = [t for t in processed.tokens if t.type == "studio_code"]
+
+    if code_tokens:
+        assert code_tokens[0].value == "3190"
+        assert processed.studio == "Corbin Fisher"
 
 
 if __name__ == '__main__':

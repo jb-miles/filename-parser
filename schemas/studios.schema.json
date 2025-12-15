@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Studios Dictionary",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["canonical_name"],
+    "properties": {
+      "canonical_name": { "type": "string", "minLength": 1 },
+      "abbr": {
+        "oneOf": [
+          { "type": "null" },
+          { "type": "string" },
+          { "type": "array", "items": { "type": "string" } }
+        ]
+      },
+      "aliases": {
+        "oneOf": [
+          { "type": "null" },
+          { "type": "string" },
+          { "type": "array", "items": { "type": "string" } }
+        ]
+      },
+      "url": { "type": ["string", "null"] },
+      "gevi_id": { "type": ["string", "null"] },
+      "stash_id": { "type": ["string", "null"] },
+      "iafd_id": { "type": ["string", "null"] }
+    }
+  }
+}

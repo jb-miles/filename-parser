@@ -1,0 +1,101 @@
+{
+  "mode": "blind",
+  "total_rows": 261,
+  "field_coverage": {
+    "studio": 0.4099616858237548,
+    "performers": 0.27586206896551724,
+    "date": 0.022988505747126436,
+    "studio_code": 0.0,
+    "title": 0.9157088122605364,
+    "sequence": 0.08812260536398467,
+    "group": 0.0
+  },
+  "avg_match_rate": 1.0,
+  "pattern_histogram": [
+    {
+      "pattern": "{token0}",
+      "count": 129
+    },
+    {
+      "pattern": "{studio} - {token1}",
+      "count": 34
+    },
+    {
+      "pattern": "{studio} - {token1} - {performers}",
+      "count": 13
+    },
+    {
+      "pattern": "{performers}",
+      "count": 12
+    },
+    {
+      "pattern": "[{studio}] {token1} - {performers}",
+      "count": 10
+    },
+    {
+      "pattern": "{studio} - {performers} - {token2}",
+      "count": 6
+    },
+    {
+      "pattern": "{junk} - {studio} - {token1} - {token2} - {performers} - {junk}",
+      "count": 6
+    },
+    {
+      "pattern": "{token0} - {token1}",
+      "count": 6
+    },
+    {
+      "pattern": "{studio} - {performers} ({token2})",
+      "count": 6
+    },
+    {
+      "pattern": "{studio} - {token1} - {token2}",
+      "count": 5
+    },
+    {
+      "pattern": "{studio} - {token1} ({date})",
+      "count": 4
+    },
+    {
+      "pattern": "[{studio}] {token1}",
+      "count": 4
+    },
+    {
+      "pattern": "{studio} - {performers}",
+      "count": 4
+    },
+    {
+      "pattern": "{token0} - {token1} - {performers}",
+      "count": 3
+    },
+    {
+      "pattern": "[{studio}] - {performers} - {token2} - {token3}",
+      "count": 2
+    },
+    {
+      "pattern": "{studio} - {performers} - {token2} - {token3}",
+      "count": 2
+    },
+    {
+      "pattern": "{studio} - {token1} - {token2} - {performers}",
+      "count": 2
+    },
+    {
+      "pattern": "{token0} {date}",
+      "count": 2
+    },
+    {
+      "pattern": "{studio} - {token1} - {performers} - {token3}",
+      "count": 2
+    },
+    {
+      "pattern": "[{studio}] - {token1} - {performers}",
+      "count": 1
+    }
+  ],
+  "anomalies": {
+    "rows_with_unlabeled_tokens": 0,
+    "total_unlabeled_tokens": 0
+  },
+  "timestamp": "2025-12-15T00:24:53.287656"
+}

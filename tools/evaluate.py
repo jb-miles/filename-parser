@@ -12,19 +12,20 @@ Outputs:
 """
 
 import sys
-import os
 import argparse
 import json
 import ast
 from datetime import datetime
 from dataclasses import dataclass, asdict
-from typing import List, Optional, Dict, Any, Set
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Union
 from collections import Counter
 
 # Add parent directory to path to import parser modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 
-from parser import FilenameParser
+from yansa import FilenameParser
 from modules import PreTokenizer
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill, Font
@@ -37,9 +38,9 @@ class ParsedRow:
     """Represents a single parsed filename with all extracted fields."""
     input: str
     removed: str
-    path: Optional[str]
+    # path: Optional[str]  # Disabled - not working on paths yet
     filename_cleaned: str
-    path_pattern: Optional[str]
+    # path_pattern: Optional[str]  # Disabled - not working on paths yet
     filename_pattern: str
     studio: Optional[str]
     title: Optional[str]
@@ -48,7 +49,7 @@ class ParsedRow:
     studio_code: Optional[str]
     sequence: Optional[Dict[str, Any]]
     group: Optional[str]
-    unlabeled_path_tokens: Optional[Set[str]]
+    # unlabeled_path_tokens: Optional[Set[str]]  # Disabled - not working on paths yet
     unlabeled_filename_tokens: Optional[Set[str]]
     match_stats: Dict[str, Any]
 
@@ -57,9 +58,9 @@ class ParsedRow:
         return [
             self.input,
             self.removed,
-            self.path if self.path else "",
+            # self.path if self.path else "",  # Disabled - not working on paths yet
             self.filename_cleaned,
-            self.path_pattern if self.path_pattern else "",
+            # self.path_pattern if self.path_pattern else "",  # Disabled - not working on paths yet
             self.filename_pattern,
             self.studio if self.studio else "",
             self.title if self.title else "",
@@ -68,7 +69,7 @@ class ParsedRow:
             self.studio_code if self.studio_code else "",
             json.dumps(self.sequence) if self.sequence else "",
             self.group if self.group else "",
-            str(self.unlabeled_path_tokens) if self.unlabeled_path_tokens else "",
+            # str(self.unlabeled_path_tokens) if self.unlabeled_path_tokens else "",  # Disabled - not working on paths yet
             str(self.unlabeled_filename_tokens) if self.unlabeled_filename_tokens else "",
             json.dumps(self.match_stats),
         ]
@@ -79,9 +80,9 @@ class ParsedRow:
         return [
             "input",
             "removed",
-            "path",
+            # "path",  # Disabled - not working on paths yet
             "filename_cleaned",
-            "path_pattern",
+            # "path_pattern",  # Disabled - not working on paths yet
             "filename_pattern",
             "studio",
             "title",
@@ -90,7 +91,7 @@ class ParsedRow:
             "studio_code",
             "sequence",
             "group",
-            "unlabeled_path_tokens",
+            # "unlabeled_path_tokens",  # Disabled - not working on paths yet
             "unlabeled_filename_tokens",
             "match_stats",
         ]
@@ -149,16 +150,17 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def read_input_file(filepath: str, limit: Optional[int] = None,
+def read_input_file(filepath: Union[str, Path], limit: Optional[int] = None,
                    sheet_name: Optional[str] = None) -> List[str]:
     """
     Read input file and return list of filenames.
     Handles text files and Excel files.
     """
+    filepath = Path(filepath)
     filenames = []
 
     # Check if it's an Excel file
-    if filepath.endswith('.xlsx'):
+    if filepath.suffix == '.xlsx':
         wb = load_workbook(filepath, read_only=True)
         try:
             ws = None
@@ -195,7 +197,7 @@ def read_input_file(filepath: str, limit: Optional[int] = None,
             wb.close()
     else:
         # Text file - read line by line
-        with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
+        with filepath.open('r', encoding='utf-8', errors='replace') as f:
             for line in f:
                 line = line.strip()
                 if line and line not in ['exceptions', 'sacrifice']:
@@ -210,7 +212,7 @@ def parse_filename(parser: FilenameParser, filename: str) -> ParsedRow:
     """
     Parse a single filename and return a ParsedRow.
 
-    This transforms the parser's output into the 16-column schema.
+    This transforms the parser's output into the 13-column schema (path columns disabled).
     The parser now handles all extraction logic (title, sequence, group, etc.).
     """
     # Run full parsing pipeline
@@ -221,29 +223,28 @@ def parse_filename(parser: FilenameParser, filename: str) -> ParsedRow:
     pre_result = parser.pre_tokenize(filename)
     removed_str = ' | '.join([f"{t.value}({t.category})" for t in pre_result.removed_tokens])
 
-    # Extract path and non-path tokens
-    path_token = None
-    filename_tokens = []
-    for token in tokens:
-        if token.type == 'path':
-            path_token = token
-        else:
-            filename_tokens.append(token)
+    # PATH PROCESSING DISABLED - Not working on paths yet
+    # # Extract path and non-path tokens
+    # path_token = None
+    # filename_tokens = []
+    # for token in tokens:
+    #     if token.type == 'path':
+    #         path_token = token
+    #     else:
+    #         filename_tokens.append(token)
 
-    # Build patterns
-    path_pattern = None
-    if path_token:
-        # TODO: Build path pattern from path tokens
-        path_pattern = None  # Placeholder for now
+    # All tokens are filename tokens (no path tokens)
+    filename_tokens = tokens
 
-    # Build filename pattern from tokens
-    pattern_parts = []
-    for token in filename_tokens:
-        if token.type in ['date', 'studio', 'studio_code', 'performers', 'sequence', 'title']:
-            pattern_parts.append(f"{{{token.type}}}")
-        else:
-            pattern_parts.append("{text}")
-    filename_pattern = " ".join(pattern_parts) if pattern_parts else ""
+    # PATH PROCESSING DISABLED - Not working on paths yet
+    # # Build patterns
+    # path_pattern = None
+    # if path_token:
+    #     # TODO: Build path pattern from path tokens
+    #     path_pattern = None  # Placeholder for now
+
+    # Use the pattern from the tokenizer (it includes delimiters)
+    filename_pattern = result.pattern or ""
 
     # Extract labeled fields from parser result
     studio = result.studio
@@ -264,11 +265,19 @@ def parse_filename(parser: FilenameParser, filename: str) -> ParsedRow:
         elif token.type == 'studio_code':
             studio_code = token.value
 
-    # Calculate unlabeled tokens
-    unlabeled_path_tokens = set()
-    unlabeled_filename_tokens = set()
+    # PATH PROCESSING DISABLED - Not working on paths yet
+    # # Calculate unlabeled tokens
+    # unlabeled_path_tokens = set()
+    # unlabeled_filename_tokens = set()
+    #
+    # labeled_types = {'path', 'date', 'studio', 'studio_code', 'performers', 'sequence', 'title'}
+    # for token in filename_tokens:
+    #     if token.type not in labeled_types and token.value.strip():
+    #         unlabeled_filename_tokens.add(token.value)
 
-    labeled_types = {'path', 'date', 'studio', 'studio_code', 'performers', 'sequence', 'title'}
+    # Calculate unlabeled filename tokens only
+    unlabeled_filename_tokens = set()
+    labeled_types = {'date', 'studio', 'studio_code', 'performers', 'sequence', 'title'}
     for token in filename_tokens:
         if token.type not in labeled_types and token.value.strip():
             unlabeled_filename_tokens.add(token.value)
@@ -279,7 +288,7 @@ def parse_filename(parser: FilenameParser, filename: str) -> ParsedRow:
     match_rate = matched_tokens / total_filename_tokens if total_filename_tokens > 0 else 0.0
 
     match_stats = {
-        "path_tokens": 1 if path_token else 0,
+        # "path_tokens": 1 if path_token else 0,  # Disabled - not working on paths yet
         "filename_tokens": total_filename_tokens,
         "matched_tokens": matched_tokens,
         "match_rate": round(match_rate, 4)
@@ -288,9 +297,9 @@ def parse_filename(parser: FilenameParser, filename: str) -> ParsedRow:
     return ParsedRow(
         input=filename,
         removed=removed_str,
-        path=path_token.value if path_token else None,
+        # path=path_token.value if path_token else None,  # Disabled - not working on paths yet
         filename_cleaned=result.cleaned,
-        path_pattern=path_pattern,
+        # path_pattern=path_pattern,  # Disabled - not working on paths yet
         filename_pattern=filename_pattern,
         studio=studio,
         title=title,
@@ -299,7 +308,7 @@ def parse_filename(parser: FilenameParser, filename: str) -> ParsedRow:
         studio_code=studio_code,
         sequence=sequence,
         group=group,
-        unlabeled_path_tokens=unlabeled_path_tokens if unlabeled_path_tokens else None,
+        # unlabeled_path_tokens=unlabeled_path_tokens if unlabeled_path_tokens else None,  # Disabled - not working on paths yet
         unlabeled_filename_tokens=unlabeled_filename_tokens if unlabeled_filename_tokens else None,
         match_stats=match_stats
     )
@@ -351,12 +360,13 @@ def calculate_blind_metrics(rows: List[ParsedRow]) -> Dict[str, Any]:
     }
 
 
-def load_reference_data(filepath: str, sheet_name: str = "Reference") -> List[ParsedRow]:
+def load_reference_data(filepath: Union[str, Path], sheet_name: str = "Reference") -> List[ParsedRow]:
     """
     Load reference data from Excel file.
 
     Expects the same 16-column schema as our output.
     """
+    filepath = Path(filepath)
     wb = load_workbook(filepath, read_only=True)
     try:
         if sheet_name not in wb.sheetnames:
@@ -385,23 +395,24 @@ def load_reference_data(filepath: str, sheet_name: str = "Reference") -> List[Pa
                 return str(val) if val is not None else None
 
             # Parse the row into ParsedRow
+            # Note: Adjusted indices because path-related columns are disabled
             parsed_row = ParsedRow(
                 input=to_str(row[0]),
                 removed=to_str(row[1]),
-                path=to_str_or_none(row[2]),
-                filename_cleaned=to_str(row[3]),
-                path_pattern=to_str_or_none(row[4]),
-                filename_pattern=to_str(row[5]),
-                studio=to_str_or_none(row[6]),
-                title=to_str_or_none(row[7]),
-                performers=to_str_or_none(row[8]),
-                date=to_str_or_none(row[9]),
-                studio_code=to_str_or_none(row[10]),
-                sequence=json.loads(str(row[11])) if row[11] else None,
-                group=to_str_or_none(row[12]),
-                unlabeled_path_tokens=ast.literal_eval(str(row[13])) if row[13] else None,
-                unlabeled_filename_tokens=ast.literal_eval(str(row[14])) if row[14] else None,
-                match_stats=json.loads(str(row[15])) if row[15] else {}
+                # path=to_str_or_none(row[2]),  # Disabled - not working on paths yet
+                filename_cleaned=to_str(row[2]),  # Was row[3], now row[2]
+                # path_pattern=to_str_or_none(row[4]),  # Disabled - not working on paths yet
+                filename_pattern=to_str(row[3]),  # Was row[5], now row[3]
+                studio=to_str_or_none(row[4]),  # Was row[6], now row[4]
+                title=to_str_or_none(row[5]),  # Was row[7], now row[5]
+                performers=to_str_or_none(row[6]),  # Was row[8], now row[6]
+                date=to_str_or_none(row[7]),  # Was row[9], now row[7]
+                studio_code=to_str_or_none(row[8]),  # Was row[10], now row[8]
+                sequence=json.loads(str(row[9])) if row[9] else None,  # Was row[11], now row[9]
+                group=to_str_or_none(row[10]),  # Was row[12], now row[10]
+                # unlabeled_path_tokens=ast.literal_eval(str(row[13])) if row[13] else None,  # Disabled - not working on paths yet
+                unlabeled_filename_tokens=ast.literal_eval(str(row[11])) if row[11] else None,  # Was row[14], now row[11]
+                match_stats=json.loads(str(row[12])) if row[12] else {}  # Was row[15], now row[12]
             )
             reference_rows.append(parsed_row)
     finally:
@@ -411,120 +422,169 @@ def load_reference_data(filepath: str, sheet_name: str = "Reference") -> List[Pa
 
 def calculate_reference_metrics(rows: List[ParsedRow], reference_rows: List[ParsedRow], samples: int = 10) -> Dict[str, Any]:
     """
-    Calculate comprehensive metrics for reference mode.
+    Calculate comprehensive metrics for reference mode with user-defined metrics:
 
-    Compare parsed results against reference labels and provide clear, separated metrics.
+    1. Pattern Match Rate: % of files where pattern fields match exactly
+    2. Metadata False Negative Rate: % of opportunities where reference has data but result is empty
+    3. Metadata False Positive Rate: % of opportunities where reference is empty but result has data
+    4. Metadata Accuracy Rate: % of opportunities where both have data and it matches exactly
+    5. Parsed Perfect Rate: % of files where all 7 metadata fields match perfectly
     """
     total_rows = len(rows)
+    metadata_fields = ['studio', 'performers', 'date', 'studio_code', 'title', 'sequence', 'group']
 
     if len(reference_rows) != total_rows:
         raise ValueError(f"Row count mismatch: {total_rows} parsed vs {len(reference_rows)} reference")
 
-    # Per-field metrics
-    field_metrics = {}
-    mismatches = []  # Store sample mismatches
-    total_field_errors = 0
-    files_with_any_errors = set()
-    
-    # Token metrics
-    total_tokens = 0
-    matched_tokens = 0
+    # 1. Pattern Match Rate (only count opportunities where reference has a pattern)
+    pattern_matches = 0
+    pattern_opportunities = 0
+    for i in range(total_rows):
+        ref_pattern = reference_rows[i].filename_pattern
+        parsed_pattern = rows[i].filename_pattern
 
-    for field in ['studio', 'performers', 'date', 'studio_code', 'title', 'sequence', 'group']:
-        correct = 0
-        false_positives = []  # We said X, reference said None
-        false_negatives = []  # We said None, reference said X
-        incorrect = []  # Both non-None but different
+        # Only count as an opportunity if reference has a pattern
+        if ref_pattern is not None and ref_pattern != "":
+            pattern_opportunities += 1
+            if parsed_pattern == ref_pattern:
+                pattern_matches += 1
+
+    pattern_match_rate = (pattern_matches / pattern_opportunities * 100) if pattern_opportunities > 0 else 0.0
+
+    # Initialize counters for metadata metrics
+    false_negative_opportunities = 0
+    false_negatives = 0
+    false_positive_opportunities = 0
+    false_positives = 0
+    accuracy_opportunities = 0
+    accurate_matches = 0
+    files_perfectly_parsed = 0
+
+    # Per-field tracking
+    field_metrics = {}
+    mismatches = []
+
+    for field in metadata_fields:
+        field_fn_opps = 0  # Opportunities for false negatives
+        field_fns = 0      # False negatives
+        field_fp_opps = 0  # Opportunities for false positives
+        field_fps = 0      # False positives
+        field_acc_opps = 0 # Opportunities for accuracy
+        field_acc = 0      # Accurate matches
+
+        field_mismatches = []
 
         for i in range(total_rows):
             parsed_val = getattr(rows[i], field)
             ref_val = getattr(reference_rows[i], field)
 
-            if parsed_val == ref_val:
-                correct += 1
-            else:
-                # Track mismatch
-                mismatch_info = {
-                    'input': rows[i].input,
-                    'field': field,
-                    'parsed': parsed_val,
-                    'expected': ref_val
-                }
-                files_with_any_errors.add(i)
+            # False Negative: Reference has data, result is empty
+            if ref_val is not None and ref_val != "":
+                field_fn_opps += 1
+                false_negative_opportunities += 1
+                if parsed_val is None or parsed_val == "":
+                    field_fns += 1
+                    false_negatives += 1
+                    field_mismatches.append({
+                        'input': rows[i].input,
+                        'field': field,
+                        'type': 'false_negative',
+                        'parsed': parsed_val,
+                        'expected': ref_val
+                    })
 
-                if parsed_val is not None and ref_val is None:
-                    false_positives.append(mismatch_info)
-                elif parsed_val is None and ref_val is not None:
-                    false_negatives.append(mismatch_info)
-                else:
-                    incorrect.append(mismatch_info)
+            # False Positive: Reference is empty, result has data
+            if ref_val is None or ref_val == "":
+                field_fp_opps += 1
+                false_positive_opportunities += 1
+                if parsed_val is not None and parsed_val != "":
+                    field_fps += 1
+                    false_positives += 1
+                    field_mismatches.append({
+                        'input': rows[i].input,
+                        'field': field,
+                        'type': 'false_positive',
+                        'parsed': parsed_val,
+                        'expected': ref_val
+                    })
 
-        # Calculate field errors
-        field_errors = len(false_positives) + len(false_negatives) + len(incorrect)
-        total_field_errors += field_errors
-        
-        # Calculate percentage correct
-        percentage_correct = (correct / total_rows) * 100 if total_rows > 0 else 0.0
+            # Accuracy: Reference has data, check if result matches
+            if ref_val is not None and ref_val != "":
+                field_acc_opps += 1
+                accuracy_opportunities += 1
+                if parsed_val == ref_val:
+                    field_acc += 1
+                    accurate_matches += 1
+                elif parsed_val is not None and parsed_val != "":
+                    # Both have data but different - track as inaccuracy
+                    field_mismatches.append({
+                        'input': rows[i].input,
+                        'field': field,
+                        'type': 'incorrect',
+                        'parsed': parsed_val,
+                        'expected': ref_val
+                    })
+
+        # Calculate rates for this field
+        field_fn_rate = (field_fns / field_fn_opps * 100) if field_fn_opps > 0 else 0.0
+        field_fp_rate = (field_fps / field_fp_opps * 100) if field_fp_opps > 0 else 0.0
+        field_acc_rate = (field_acc / field_acc_opps * 100) if field_acc_opps > 0 else 0.0
 
         field_metrics[field] = {
-            'correct': correct,
-            'errors': field_errors,
-            'percentage_correct': round(percentage_correct, 1),
-            'false_positives': len(false_positives),
-            'false_negatives': len(false_negatives),
-            'incorrect': len(incorrect)
+            'false_negative_rate': round(field_fn_rate, 2),
+            'false_negative_count': field_fns,
+            'false_negative_opportunities': field_fn_opps,
+            'false_positive_rate': round(field_fp_rate, 2),
+            'false_positive_count': field_fps,
+            'false_positive_opportunities': field_fp_opps,
+            'accuracy_rate': round(field_acc_rate, 2),
+            'accurate_count': field_acc,
+            'accuracy_opportunities': field_acc_opps,
         }
 
-        # Add sample mismatches (up to specified limit)
-        if false_positives:
-            mismatches.extend(false_positives[:samples])
-        if false_negatives:
-            mismatches.extend(false_negatives[:samples])
-        if incorrect:
-            mismatches.extend(incorrect[:samples])
+        # Add sample mismatches
+        mismatches.extend(field_mismatches[:samples])
 
-    # Calculate token metrics
-    for row in rows:
-        total_tokens += row.match_stats.get('filename_tokens', 0) + row.match_stats.get('path_tokens', 0)
-        matched_tokens += row.match_stats.get('matched_tokens', 0)
+    # 5. Parsed Perfect Rate: Files where all 7 fields match exactly
+    for i in range(total_rows):
+        perfect = True
+        for field in metadata_fields:
+            if getattr(rows[i], field) != getattr(reference_rows[i], field):
+                perfect = False
+                break
+        if perfect:
+            files_perfectly_parsed += 1
 
-    token_match_rate = matched_tokens / total_tokens if total_tokens > 0 else 0.0
+    parsed_perfect_rate = (files_perfectly_parsed / total_rows * 100) if total_rows > 0 else 0.0
 
-    # Calculate field-level metrics
-    total_field_comparisons = total_rows * 7  # 7 fields
-    total_correct_fields = sum(m['correct'] for m in field_metrics.values())
-    field_accuracy = total_correct_fields / total_field_comparisons if total_field_comparisons > 0 else 0.0
-    field_error_rate = total_field_errors / total_field_comparisons if total_field_comparisons > 0 else 0.0
-
-    # Calculate file-level metrics
-    files_perfectly_parsed = total_rows - len(files_with_any_errors)
-    perfect_match_rate = files_perfectly_parsed / total_rows if total_rows > 0 else 0.0
+    # Calculate overall metadata rates
+    metadata_false_negative_rate = (false_negatives / false_negative_opportunities * 100) if false_negative_opportunities > 0 else 0.0
+    metadata_false_positive_rate = (false_positives / false_positive_opportunities * 100) if false_positive_opportunities > 0 else 0.0
+    metadata_accuracy_rate = (accurate_matches / accuracy_opportunities * 100) if accuracy_opportunities > 0 else 0.0
 
     return {
         'mode': 'reference',
+        'key_metrics': {
+            'pattern_match_rate': round(pattern_match_rate, 2),
+            'metadata_false_negative_rate': round(metadata_false_negative_rate, 2),
+            'metadata_false_positive_rate': round(metadata_false_positive_rate, 2),
+            'metadata_accuracy_rate': round(metadata_accuracy_rate, 2),
+            'parsed_perfect_rate': round(parsed_perfect_rate, 2),
+        },
         'summary': {
             'total_files': total_rows,
-            'total_field_errors': total_field_errors,
-            'files_with_any_errors': len(files_with_any_errors),
-            'files_perfectly_parsed': files_perfectly_parsed
-        },
-        'token_metrics': {
-            'total_tokens': total_tokens,
-            'matched_tokens': matched_tokens,
-            'token_match_rate': round(token_match_rate, 3)
-        },
-        'field_metrics': {
-            'total_field_comparisons': total_field_comparisons,
-            'correct_field_matches': total_correct_fields,
-            'field_accuracy': round(field_accuracy, 3),
-            'field_error_rate': round(field_error_rate, 3)
-        },
-        'file_metrics': {
-            'perfect_match_rate': round(perfect_match_rate, 3),
-            'error_free_rate': round(perfect_match_rate, 3)
+            'pattern_matches': pattern_matches,
+            'pattern_opportunities': pattern_opportunities,
+            'files_perfectly_parsed': files_perfectly_parsed,
+            'false_negative_opportunities': false_negative_opportunities,
+            'false_negatives': false_negatives,
+            'false_positive_opportunities': false_positive_opportunities,
+            'false_positives': false_positives,
+            'accuracy_opportunities': accuracy_opportunities,
+            'accurate_matches': accurate_matches,
         },
         'field_breakdown': field_metrics,
-        'sample_mismatches': mismatches[:samples * 3],  # Limit total samples
+        'sample_mismatches': mismatches[:samples * 3],
         'timestamp': datetime.now().isoformat()
     }
 
@@ -546,9 +606,9 @@ def create_diff_rows(parsed_rows: List[ParsedRow], reference_rows: List[ParsedRo
         diff = ParsedRow(
             input=parsed.input,  # Always use parsed input
             removed=parsed.removed if parsed.removed == reference.removed else f'{{"expected": "{reference.removed}", "returned": "{parsed.removed}"}}',
-            path=parsed.path if parsed.path == reference.path else reference.path,  # Use reference if they differ
+            # path=parsed.path if parsed.path == reference.path else reference.path,  # Disabled - not working on paths yet
             filename_cleaned=parsed.filename_cleaned if parsed.filename_cleaned == reference.filename_cleaned else f'{{"expected": "{reference.filename_cleaned}", "returned": "{parsed.filename_cleaned}"}}',
-            path_pattern=parsed.path_pattern if parsed.path_pattern == reference.path_pattern else reference.path_pattern,
+            # path_pattern=parsed.path_pattern if parsed.path_pattern == reference.path_pattern else reference.path_pattern,  # Disabled - not working on paths yet
             filename_pattern=parsed.filename_pattern if parsed.filename_pattern == reference.filename_pattern else f'{{"expected": "{reference.filename_pattern}", "returned": "{parsed.filename_pattern}"}}',
             studio=parsed.studio if parsed.studio == reference.studio else f'{{"expected": "{reference.studio}", "returned": "{parsed.studio}"}}',
             title=parsed.title if parsed.title == reference.title else f'{{"expected": "{reference.title}", "returned": "{parsed.title}"}}',
@@ -557,7 +617,7 @@ def create_diff_rows(parsed_rows: List[ParsedRow], reference_rows: List[ParsedRo
             studio_code=parsed.studio_code if parsed.studio_code == reference.studio_code else f'{{"expected": "{reference.studio_code}", "returned": "{parsed.studio_code}"}}',
             sequence=parsed.sequence if parsed.sequence == reference.sequence else {"expected": reference.sequence, "returned": parsed.sequence},
             group=parsed.group if parsed.group == reference.group else f'{{"expected": "{reference.group}", "returned": "{parsed.group}"}}',
-            unlabeled_path_tokens=parsed.unlabeled_path_tokens if parsed.unlabeled_path_tokens == reference.unlabeled_path_tokens else reference.unlabeled_path_tokens,
+            # unlabeled_path_tokens=parsed.unlabeled_path_tokens if parsed.unlabeled_path_tokens == reference.unlabeled_path_tokens else reference.unlabeled_path_tokens,  # Disabled - not working on paths yet
             unlabeled_filename_tokens=parsed.unlabeled_filename_tokens if parsed.unlabeled_filename_tokens == reference.unlabeled_filename_tokens else reference.unlabeled_filename_tokens,
             match_stats=parsed.match_stats
         )
@@ -629,7 +689,7 @@ def write_excel_sheet(ws, rows: List[ParsedRow], sheet_name: str, highlight_disc
         ws.add_table(table)
 
 
-def write_excel_output(rows: List[ParsedRow], output_path: str, mode: str,
+def write_excel_output(rows: List[ParsedRow], output_path: Union[str, Path], mode: str,
                        reference_rows: Optional[List[ParsedRow]] = None,
                        diff_rows: Optional[List[ParsedRow]] = None):
     """
@@ -639,6 +699,7 @@ def write_excel_output(rows: List[ParsedRow], output_path: str, mode: str,
     For reference mode: three sheets (Reference, Results, Diff)
     In reference mode, discrepancies in the Diff sheet are highlighted in yellow.
     """
+    output_path = Path(output_path)
     wb = Workbook()
 
     if mode == 'blind':
@@ -665,9 +726,10 @@ def write_excel_output(rows: List[ParsedRow], output_path: str, mode: str,
     wb.save(output_path)
 
 
-def write_json_metrics(metrics: Dict[str, Any], output_path: str):
+def write_json_metrics(metrics: Dict[str, Any], output_path: Union[str, Path]):
     """Write metrics to JSON file."""
-    with open(output_path, 'w', encoding='utf-8') as f:
+    output_path = Path(output_path)
+    with output_path.open('w', encoding='utf-8') as f:
         json.dump(metrics, f, indent=2)
 
 
@@ -675,12 +737,15 @@ def main():
     """Main evaluation harness entry point."""
     args = parse_arguments()
 
-    # Generate default output paths if not specified
+    # Normalize paths and generate defaults
+    input_path = Path(args.input)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    if not args.output_excel:
-        args.output_excel = f"metrics/{args.mode}-{timestamp}.xlsx"
-    if not args.output_json:
-        args.output_json = f"metrics/{args.mode}-{timestamp}.json"
+    output_excel = Path(args.output_excel) if args.output_excel else Path("metrics") / f"{args.mode}-{timestamp}.xlsx"
+    output_json = Path(args.output_json) if args.output_json else Path("metrics") / f"{args.mode}-{timestamp}.json"
+
+    args.input = input_path
+    args.output_excel = output_excel
+    args.output_json = output_json
 
     print(f"=== Filename Parser Evaluation ({args.mode} mode) ===")
     print(f"Input: {args.input}")
@@ -741,46 +806,49 @@ def main():
             print(f"  {item['pattern']}: {item['count']} occurrences")
     else:
         # Reference mode summary
+        key_metrics = metrics['key_metrics']
         summary = metrics['summary']
-        token_metrics = metrics['token_metrics']
-        field_metrics_summary = metrics['field_metrics']
-        file_metrics = metrics['file_metrics']
-        
-        print(f"=== SUMMARY ===")
-        print(f"Total files: {summary['total_files']}")
-        print(f"Files with any errors: {summary['files_with_any_errors']}")
-        print(f"Files perfectly parsed: {summary['files_perfectly_parsed']}")
-        print(f"Total field errors: {summary['total_field_errors']}")
-        
-        print(f"\n=== TOKEN METRICS ===")
-        print(f"Total tokens: {token_metrics['total_tokens']}")
-        print(f"Matched tokens: {token_metrics['matched_tokens']}")
-        print(f"Token match rate: {token_metrics['token_match_rate']:.1%}")
-        
-        print(f"\n=== FIELD METRICS ===")
-        print(f"Total field comparisons: {field_metrics_summary['total_field_comparisons']}")
-        print(f"Correct field matches: {field_metrics_summary['correct_field_matches']}")
-        print(f"Field accuracy: {field_metrics_summary['field_accuracy']:.1%}")
-        print(f"Field error rate: {field_metrics_summary['field_error_rate']:.1%}")
-        
-        print(f"\n=== FILE METRICS ===")
-        print(f"Perfect match rate: {file_metrics['perfect_match_rate']:.1%}")
-        print(f"Error-free rate: {file_metrics['error_free_rate']:.1%}")
-        
-        print(f"\n=== FIELD BREAKDOWN ===")
-        for field, field_data in metrics['field_breakdown'].items():
-            print(f"  {field}:")
-            print(f"    Correct: {field_data['correct']}/{summary['total_files']}")
-            print(f"    Errors: {field_data['errors']}")
-            print(f"    Percentage correct: {field_data['percentage_correct']:.1f}%")
+        field_breakdown = metrics['field_breakdown']
+
+        print(f"\n{'='*60}")
+        print(f"{'KEY METRICS':^60}")
+        print(f"{'='*60}")
+        print(f"Pattern Match Rate:              {key_metrics['pattern_match_rate']:>6.2f}%")
+        print(f"Metadata False Negative Rate:    {key_metrics['metadata_false_negative_rate']:>6.2f}%")
+        print(f"Metadata False Positive Rate:    {key_metrics['metadata_false_positive_rate']:>6.2f}%")
+        print(f"Metadata Accuracy Rate:          {key_metrics['metadata_accuracy_rate']:>6.2f}%")
+        print(f"Parsed Perfect Rate:             {key_metrics['parsed_perfect_rate']:>6.2f}%")
+
+        print(f"\n{'='*60}")
+        print(f"{'SUMMARY':^60}")
+        print(f"{'='*60}")
+        print(f"Total files:                     {summary['total_files']:>6}")
+        print(f"Pattern matches:                 {summary['pattern_matches']:>6} / {summary['pattern_opportunities']:<6} opportunities")
+        print(f"Files perfectly parsed:          {summary['files_perfectly_parsed']:>6}")
+        print(f"\nFalse Negatives:                 {summary['false_negatives']:>6} / {summary['false_negative_opportunities']:<6} opportunities")
+        print(f"False Positives:                 {summary['false_positives']:>6} / {summary['false_positive_opportunities']:<6} opportunities")
+        print(f"Accurate matches:                {summary['accurate_matches']:>6} / {summary['accuracy_opportunities']:<6} opportunities")
+
+        print(f"\n{'='*60}")
+        print(f"{'FIELD BREAKDOWN':^60}")
+        print(f"{'='*60}")
+        for field, field_data in field_breakdown.items():
+            print(f"\n{field.upper()}")
+            print(f"  False Negative Rate: {field_data['false_negative_rate']:>6.2f}%  ({field_data['false_negative_count']}/{field_data['false_negative_opportunities']} opportunities)")
+            print(f"  False Positive Rate: {field_data['false_positive_rate']:>6.2f}%  ({field_data['false_positive_count']}/{field_data['false_positive_opportunities']} opportunities)")
+            print(f"  Accuracy Rate:       {field_data['accuracy_rate']:>6.2f}%  ({field_data['accurate_count']}/{field_data['accuracy_opportunities']} opportunities)")
 
         if metrics.get('sample_mismatches'):
-            print(f"\n=== SAMPLE MISMATCHES ===")
+            print(f"\n{'='*60}")
+            print(f"{'SAMPLE MISMATCHES':^60}")
+            print(f"{'='*60}")
             print(f"Showing up to {args.samples} per field:")
-            for mismatch in metrics['sample_mismatches'][:5]:
-                print(f"  {mismatch['field']}: {mismatch['input'][:50]}...")
+            for mismatch in metrics['sample_mismatches'][:10]:
+                mismatch_type = mismatch.get('type', 'unknown')
+                print(f"\n  [{mismatch_type.upper()}] {mismatch['field']}")
+                print(f"  File: {mismatch['input'][:70]}...")
                 print(f"    Expected: {mismatch['expected']}")
-                print(f"    Parsed: {mismatch['parsed']}")
+                print(f"    Parsed:   {mismatch['parsed']}")
 
     # Write outputs
     if not args.no_write:

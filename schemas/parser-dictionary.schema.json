@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Parser Dictionary",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "extensions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "resolution_markers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "quality_markers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "source_markers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "format_markers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "misc_markers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "trimming_strings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "replace_with_dash": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "junk_tokens": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "non_performer_words": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "studio_codes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": { "type": "string" },
+          "regex": { "type": "string" },
+          "studio": { "type": ["string", "null"] },
+          "normalize": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "strip_prefix_letters": { "type": "boolean" },
+              "strip_leading_zeros": { "type": "boolean" },
+              "digits_only": { "type": "boolean" },
+              "replace_underscores_with_dash": { "type": "boolean" },
+              "uppercase": { "type": "boolean" }
+            }
+          },
+          "allow_suffix": { "type": "boolean" },
+          "code_group": { "type": "integer", "minimum": 0 }
+        },
+        "anyOf": [
+          { "required": ["code"] },
+          { "required": ["regex"] }
+        ]
+      }
+    }
+  }
+}

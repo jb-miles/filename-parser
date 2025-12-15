@@ -4,7 +4,7 @@ Tests for performer matcher normalization and pattern matching.
 """
 
 import pytest
-from parser import FilenameParser
+from yansa import FilenameParser
 from modules import PerformerMatcher, TokenizationResult, Token
 
 

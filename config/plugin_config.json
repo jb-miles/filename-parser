@@ -1,0 +1,80 @@
+{
+  "name": "Yansa Filename Parser",
+  "version": "1.0.0",
+  "description": "Integrates yansa.py filename parsing with Stash for automated metadata extraction",
+  "author": "Yansa Team",
+  "website": "https://github.com/yansa/filename-parser",
+  "ui": {
+    "name": "Filename Parser",
+    "icon": "tag"
+  },
+  "hooks": {
+    "scene": {
+      "name": "Parse Filenames",
+      "description": "Extract metadata from unorganized scene filenames",
+      "operation": "parse"
+    }
+  },
+  "permissions": [
+    "read_scenes",
+    "write_scenes",
+    "read_studios"
+  ],
+  "settings": {
+    "processing": {
+      "batch_size": {
+        "type": "number",
+        "default": 50,
+        "min": 1,
+        "max": 1000,
+        "description": "Number of scenes to process in each batch"
+      },
+      "auto_approve_no_conflicts": {
+        "type": "boolean",
+        "default": true,
+        "description": "Automatically approve changes without conflicts"
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "default": 0.8,
+        "min": 0.0,
+        "max": 1.0,
+        "description": "Minimum confidence score for auto-approval"
+      }
+    },
+    "conflicts": {
+      "auto_resolve_minor": {
+        "type": "boolean",
+        "default": true,
+        "description": "Automatically resolve minor conflicts"
+      },
+      "require_review_major": {
+        "type": "boolean",
+        "default": true,
+        "description": "Require manual review for major conflicts"
+      }
+    },
+    "ui": {
+      "show_preview": {
+        "type": "boolean",
+        "default": true,
+        "description": "Show preview of changes before applying"
+      },
+      "compact_view": {
+        "type": "boolean",
+        "default": false,
+        "description": "Use compact view for scene lists"
+      },
+      "sort_by": {
+        "type": "select",
+        "default": "filename",
+        "options": [
+          "filename",
+          "studio",
+          "date"
+        ],
+        "description": "Default sort order for scene lists"
+      }
+    }
+  }
+}

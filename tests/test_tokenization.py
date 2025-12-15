@@ -5,7 +5,7 @@ These tests verify the tokenization process that follows pre-tokenization.
 """
 
 import pytest
-from parser import FilenameParser
+from yansa import FilenameParser
 from modules import Token, PreTokenizationResult
 
 
@@ -187,3 +187,20 @@ def test_tokenizer_json_output(parser):
         assert "value" in token
         assert "position" in token
         assert "type" in token
+
+
+def test_path_parser_isolates_basename(parser):
+    """Path segments should not bleed into basename tokenization."""
+    filename = "parent/child/My Scene 1080p.mp4"
+
+    pre_result = parser.pre_tokenize(filename)
+    assert '/' not in pre_result.cleaned
+    assert 'My Scene' in pre_result.cleaned
+
+    final_result = parser.parse(filename)
+    path_token = next((t for t in final_result.tokens or [] if t.type == 'path'), None)
+    assert path_token is not None
+    assert path_token.value == "parent/child"
+    assert final_result.cleaned == pre_result.cleaned
+    assert final_result.group == "child"
+    assert final_result.sources and final_result.sources.get("group") == "path"

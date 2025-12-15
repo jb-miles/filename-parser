@@ -107,7 +107,13 @@ class DateExtractor:
             cleaned=result.cleaned,
             pattern=new_pattern,
             tokens=new_tokens,
-            studio=result.studio
+            studio=result.studio,
+            title=result.title,
+            sequence=result.sequence,
+            group=result.group,
+            studio_code=getattr(result, "studio_code", None),
+            sources=result.sources,
+            confidences=result.confidences
         )
 
     def _find_dates_in_tokens(self, tokens: List[Token]) -> List[DateMatch]:

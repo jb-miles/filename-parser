@@ -48,16 +48,31 @@
   "quality_markers": [
     "HQ",
     "UHD",
-    "HD"
+    "HD",
+    "SDR"
   ],
   "source_markers": [
     "DVD-RIP",
-    "DVD5-RIP"
+    "DVD5-RIP",
+    "DVDRip",
+    "DVDRIP",
+    "dvdrip",
+    "WEBRip",
+    "WEBRIP",
+    "webrip",
+    "WEB-DL",
+    "WEB DL",
+    "WEBDL"
   ],
   "format_markers": [
     "3D-SBS",
     "3D SBS",
-    "h264"
+    "h264",
+    "h265",
+    "x264",
+    "x265",
+    "hevc",
+    "HEVC"
   ],
   "misc_markers": [
     "original size",
@@ -89,13 +104,48 @@
     "__"
   ],
   "junk_tokens": [
-  "Gay",
-  "gay",
-  "GAY",
-  "Bareback",
-  "bareback",
-  "BAREBACK",
-  "BareBack"
+    "Gay",
+    "gay",
+    "GAY",
+    "Bareback",
+    "bareback",
+    "BAREBACK",
+    "BareBack",
+    "1080p",
+    "1080P",
+    "720p",
+    "720P",
+    "4k",
+    "4K",
+    "h264",
+    "H264",
+    "h265",
+    "H265",
+    "x264",
+    "X264",
+    "x265",
+    "X265",
+    "hevc",
+    "HEVC",
+    "dvdrip",
+    "DVDRIP",
+    "DVDRip",
+    "webrip",
+    "WEBRIP",
+    "WEBRip",
+    "web-dl",
+    "WEB-DL",
+    "WEBDL",
+    "WebDL",
+    "Individual Scenes",
+    "Collection",
+    "Collections",
+    "collection",
+    "collections",
+    "Bundle",
+    "bundle",
+    "MOVIES PACK",
+    "Movies Pack"
   ],
   "non_performer_words": [
     "scene",
@@ -151,31 +201,103 @@
   "studio_codes": [
     {
       "code": "ACM####",
-      "studio": "Corbin Fisher"
+      "studio": "Corbin Fisher",
+      "normalize": {
+        "strip_prefix_letters": true,
+        "strip_leading_zeros": true
+      },
+      "allow_suffix": true
+    },
+    {
+      "code": "ACM####-####",
+      "studio": "Corbin Fisher",
+      "normalize": {
+        "strip_prefix_letters": true,
+        "strip_leading_zeros": true
+      },
+      "allow_suffix": true
     },
     {
       "code": "ACT###",
-      "studio": "Active Duty"
+      "studio": "Active Duty",
+      "allow_suffix": true
+    },
+    {
+      "code": "AD####",
+      "studio": "Active Duty",
+      "allow_suffix": true
     },
     {
       "code": "FX###",
-      "studio": "FratX"
+      "studio": "FratX",
+      "allow_suffix": true
     },
     {
       "code": "SC####",
-      "studio": "Sean Cody"
+      "studio": "Sean Cody",
+      "normalize": {
+        "strip_prefix_letters": true,
+        "strip_leading_zeros": true
+      },
+      "allow_suffix": true
     },
     {
       "code": "SC-####",
-      "studio": "Sean Cody"
+      "studio": "Sean Cody",
+      "normalize": {
+        "strip_prefix_letters": true,
+        "strip_leading_zeros": true
+      },
+      "allow_suffix": true
+    },
+    {
+      "code": "SC####-####",
+      "studio": "Sean Cody",
+      "normalize": {
+        "strip_prefix_letters": true,
+        "strip_leading_zeros": true
+      },
+      "allow_suffix": true
+    },
+    {
+      "code": "####_##",
+      "studio": "Scary Fuckers",
+      "normalize": {
+        "replace_underscores_with_dash": true
+      },
+      "allow_suffix": true
     },
     {
       "code": "Incident ###",
-      "studio": "Boys Halfway House"
+      "studio": "Boys Halfway House",
+      "normalize": {
+        "strip_prefix_letters": true,
+        "strip_leading_zeros": true
+      },
+      "allow_suffix": true
     },
     {
       "code": "Incident \\# ###",
-      "studio": "Boys Halfway House"
+      "studio": "Boys Halfway House",
+      "normalize": {
+        "strip_prefix_letters": true,
+        "strip_leading_zeros": true
+      },
+      "allow_suffix": true
+    },
+    {
+      "code": "MK#######",
+      "studio": null,
+      "normalize": {
+        "strip_prefix_letters": true,
+        "strip_leading_zeros": true
+      },
+      "allow_suffix": true
+    },
+    {
+      "regex": "[A-Z]{2,4}[-\\s]?\\d{3,5}",
+      "studio": null,
+      "allow_suffix": true
     }
   ]
 }

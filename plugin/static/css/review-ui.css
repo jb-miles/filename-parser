@@ -1,0 +1,46 @@
+/* Additional styles for review interface */
+.studio {
+  background: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.8em;
+}
+
+.date {
+  background: #f3e5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.8em;
+}
+
+.code {
+  background: #e8f5e8;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.8em;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+
+  .controls {
+    flex-direction: column;
+  }
+
+  .scene-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .scene-info {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -6,7 +6,7 @@ Verifies that tokens matching known studios are correctly identified and marked.
 
 import pytest
 import json
-from parser import FilenameParser
+from yansa import FilenameParser
 from modules import StudioMatcher, TokenizationResult, Token
 
 
@@ -132,6 +132,22 @@ def test_studio_match_alias_resolution(studio_matcher):
     if processed.tokens[0].type == "studio":
         assert processed.tokens[0].value in studio_matcher.canonical_names
     # If not matched, that's also acceptable - depends on the dictionary content
+
+
+def test_studio_alias_map_domain(studio_matcher):
+    """Domain aliases from studio_aliases.json should normalize to canonical name."""
+    token = Token(value="scaryfuckers.com", type="text", position=0)
+    result = TokenizationResult(
+        original="scaryfuckers.com - scene",
+        cleaned="scaryfuckers.com - scene",
+        pattern="{token0} - {token1}",
+        tokens=[token, Token(value="scene", type="text", position=18)]
+    )
+
+    processed = studio_matcher.process(result)
+
+    if processed.tokens[0].type == "studio":
+        assert processed.tokens[0].value == "Scary Fuckers"
 
 
 def test_studio_match_abbreviations(studio_matcher):
