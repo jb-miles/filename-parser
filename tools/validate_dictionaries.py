@@ -99,18 +99,46 @@ def check_studio_alias_file(alias_file: Dict[str, str], canonical_names: Dict[st
     return errors
 
 
-def check_studio_codes(parser_dict, canonical_names: Dict[str, int]) -> List[str]:
+def check_studio_code_rules(studio_code_rules, canonical_names: Dict[str, int]) -> List[str]:
     errors: List[str] = []
-    for idx, entry in enumerate(parser_dict.get("studio_codes", []) or []):
-        studio = entry.get("studio")
-        code = entry.get("code") or entry.get("regex")
-        if not code:
-            errors.append(f"studio_codes[{idx}]: missing 'code' or 'regex'")
+
+    if studio_code_rules is None:
+        errors.append("studio_codes.json is missing or unreadable")
+        return errors
+
+    if not isinstance(studio_code_rules, list):
+        errors.append("studio_codes.json must be a JSON array of rule objects")
+        return errors
+
+    for idx, rule in enumerate(studio_code_rules):
+        if not isinstance(rule, dict):
+            errors.append(f"studio_codes[{idx}]: rule must be a JSON object")
             continue
-        if studio and isinstance(studio, str) and studio.lower() not in canonical_names:
-            errors.append(
-                f"studio_codes[{idx}]: studio '{studio}' not found in studios.json"
-            )
+
+        studio = rule.get("studio")
+        if studio and isinstance(studio, str) and studio.strip() and studio.lower() not in canonical_names:
+            errors.append(f"studio_codes[{idx}]: studio '{studio}' not found in studios.json")
+
+        relationship = rule.get("studio_relationship")
+        if relationship is not None:
+            relationship = str(relationship).strip().lower()
+            if relationship not in {"requires", "can_set"}:
+                errors.append(
+                    f"studio_codes[{idx}]: studio_relationship must be 'requires' or 'can_set' (got '{relationship}')"
+                )
+
+        patterns = rule.get("code_patterns")
+        if patterns is None:
+            errors.append(f"studio_codes[{idx}]: missing 'code_patterns'")
+            continue
+        if isinstance(patterns, str):
+            patterns = [patterns]
+        if not isinstance(patterns, list) or not patterns:
+            errors.append(f"studio_codes[{idx}]: 'code_patterns' must be a non-empty list")
+            continue
+        for p_idx, pattern in enumerate(patterns):
+            if not isinstance(pattern, str) or not pattern.strip():
+                errors.append(f"studio_codes[{idx}]: code_patterns[{p_idx}] must be a non-empty string")
     return errors
 
 
@@ -120,10 +148,12 @@ def main() -> int:
     parser_dict_path = DICTIONARY_DIR / "parser-dictionary.json"
     studios_path = DICTIONARY_DIR / "studios.json"
     studio_aliases_path = DICTIONARY_DIR / "studio_aliases.json"
+    studio_codes_path = DICTIONARY_DIR / "studio_codes.json"
 
     parser_dict = load_json(parser_dict_path)
     studios = load_json(studios_path)
     studio_aliases = load_json(studio_aliases_path)
+    studio_codes = load_json(studio_codes_path) if studio_codes_path.exists() else None
 
     failures.extend(
         validate_with_schema(parser_dict, SCHEMA_DIR / "parser-dictionary.schema.json", "parser-dictionary")
@@ -133,7 +163,7 @@ def main() -> int:
     canonical_lookup = {(studio.get("canonical_name") or "").lower(): idx for idx, studio in enumerate(studios or [])}
 
     failures.extend(check_studios(studios))
-    failures.extend(check_studio_codes(parser_dict, canonical_lookup))
+    failures.extend(check_studio_code_rules(studio_codes, canonical_lookup))
     failures.extend(check_studio_alias_file(studio_aliases, canonical_lookup))
 
     if failures:

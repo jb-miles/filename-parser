@@ -113,7 +113,8 @@ class DictionaryLoader:
         """
         # List of all dictionaries used by the parser
         dictionaries = [
-            "parser-dictionary.json",  # Used by tokenizer, pre_tokenizer, performer_matcher, trimmer, studio_code_finder
+            "parser-dictionary.json",  # Used by tokenizer, pre_tokenizer, performer_matcher, trimmer
+            "studio_codes.json",        # Used by studio_code_finder
             "studios.json",             # Used by studio_matcher
             "studio_aliases.json",      # Used by studio_matcher for normalization
             "performer_aliases.json",   # Used by performer_matcher (future)

@@ -78,6 +78,8 @@ class PerformerMatcher:
         Normalize performer list separators to a consistent comma-and-space format.
         """
         value = token_value.strip()
+        # Handle common HTML entity encoding that can leak into filenames/metadata dumps.
+        value = re.sub(r"&amp;", "&", value, flags=re.IGNORECASE)
         # Replace "and" (any casing) with comma separator
         value = re.sub(r'\s+(?:and)\s+', ', ', value, flags=re.IGNORECASE)
         # Replace ampersand with comma separator
@@ -203,22 +205,30 @@ class PerformerMatcher:
         if len(names) < 2:
             return False
         
-        # Split each name into individual words for validation
-        all_words = []
+        # Validate words per-name so we can allow trailing initials like "Igor C".
         for name in names:
             words = name.split()
-            all_words.extend(words)
-        
-        # Check if any words are in the non-performer dictionary
-        for word in all_words:
-            if word.lower() in self.non_performer_words:
+            if not words:
                 return False
-        
-        # Additional checks to increase confidence
-        # Check if words have reasonable length (names are typically 2-20 characters)
-        for word in all_words:
-            if len(word) < 2 or len(word) > 20:
-                return False
+
+            for idx, word in enumerate(words):
+                if word.lower() in self.non_performer_words:
+                    return False
+
+                if len(word) > 20:
+                    return False
+
+                if len(word) < 2:
+                    is_trailing_initial = (
+                        len(word) == 1
+                        and word.isalpha()
+                        and word.isupper()
+                        and idx == len(words) - 1
+                        and len(words) >= 2
+                        and len(words[0]) >= 2
+                    )
+                    if not is_trailing_initial:
+                        return False
         
         # Check capitalization (at least some names should be capitalized)
         original_words = original_token.strip().split()

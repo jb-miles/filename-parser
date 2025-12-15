@@ -78,7 +78,8 @@
     "original size",
     "(b)",
     "(t)",
-    "(bt)"
+    "(bt)",
+    "movie"
   ],
   "trimming_strings": [
     ".",
@@ -145,7 +146,8 @@
     "Bundle",
     "bundle",
     "MOVIES PACK",
-    "Movies Pack"
+    "Movies Pack",
+    "movie"
   ],
   "non_performer_words": [
     "scene",
@@ -197,107 +199,5 @@
     "juicy",
     "sunscreen",
     "beautiful"
-  ],
-  "studio_codes": [
-    {
-      "code": "ACM####",
-      "studio": "Corbin Fisher",
-      "normalize": {
-        "strip_prefix_letters": true,
-        "strip_leading_zeros": true
-      },
-      "allow_suffix": true
-    },
-    {
-      "code": "ACM####-####",
-      "studio": "Corbin Fisher",
-      "normalize": {
-        "strip_prefix_letters": true,
-        "strip_leading_zeros": true
-      },
-      "allow_suffix": true
-    },
-    {
-      "code": "ACT###",
-      "studio": "Active Duty",
-      "allow_suffix": true
-    },
-    {
-      "code": "AD####",
-      "studio": "Active Duty",
-      "allow_suffix": true
-    },
-    {
-      "code": "FX###",
-      "studio": "FratX",
-      "allow_suffix": true
-    },
-    {
-      "code": "SC####",
-      "studio": "Sean Cody",
-      "normalize": {
-        "strip_prefix_letters": true,
-        "strip_leading_zeros": true
-      },
-      "allow_suffix": true
-    },
-    {
-      "code": "SC-####",
-      "studio": "Sean Cody",
-      "normalize": {
-        "strip_prefix_letters": true,
-        "strip_leading_zeros": true
-      },
-      "allow_suffix": true
-    },
-    {
-      "code": "SC####-####",
-      "studio": "Sean Cody",
-      "normalize": {
-        "strip_prefix_letters": true,
-        "strip_leading_zeros": true
-      },
-      "allow_suffix": true
-    },
-    {
-      "code": "####_##",
-      "studio": "Scary Fuckers",
-      "normalize": {
-        "replace_underscores_with_dash": true
-      },
-      "allow_suffix": true
-    },
-    {
-      "code": "Incident ###",
-      "studio": "Boys Halfway House",
-      "normalize": {
-        "strip_prefix_letters": true,
-        "strip_leading_zeros": true
-      },
-      "allow_suffix": true
-    },
-    {
-      "code": "Incident \\# ###",
-      "studio": "Boys Halfway House",
-      "normalize": {
-        "strip_prefix_letters": true,
-        "strip_leading_zeros": true
-      },
-      "allow_suffix": true
-    },
-    {
-      "code": "MK#######",
-      "studio": null,
-      "normalize": {
-        "strip_prefix_letters": true,
-        "strip_leading_zeros": true
-      },
-      "allow_suffix": true
-    },
-    {
-      "regex": "[A-Z]{2,4}[-\\s]?\\d{3,5}",
-      "studio": null,
-      "allow_suffix": true
-    }
   ]
 }

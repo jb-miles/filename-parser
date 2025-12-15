@@ -1,0 +1,62 @@
+[
+  {
+    "studio": "Corbin Fisher",
+    "code_patterns": ["ACM####", "ACM####-####"],
+    "normalize": { "strip_prefix_letters": true, "strip_leading_zeros": true },
+    "studio_relationship": "can_set",
+    "allow_suffix": true
+  },
+  {
+    "studio": "Active Duty",
+    "code_patterns": ["ACT###", "AD####"],
+    "studio_relationship": "can_set",
+    "allow_suffix": true
+  },
+  {
+    "studio": "FratX",
+    "code_patterns": ["FX###"],
+    "studio_relationship": "can_set",
+    "allow_suffix": true
+  },
+  {
+    "studio": "Sean Cody",
+    "code_patterns": ["SC####", "SC-####", "SC####-####"],
+    "normalize": { "strip_prefix_letters": true, "strip_leading_zeros": true },
+    "studio_relationship": "can_set",
+    "allow_suffix": true
+  },
+  {
+    "studio": "Scary Fuckers",
+    "code_patterns": ["####_##"],
+    "normalize": { "replace_underscores_with_dash": true },
+    "studio_relationship": "can_set",
+    "allow_suffix": true
+  },
+  {
+    "studio": "Scary Fuckers",
+    "code_patterns": ["(##)### ##"],
+    "normalize": { "normalize_numeric_pair": true },
+    "studio_relationship": "requires",
+    "allow_suffix": true
+  },
+  {
+    "studio": "Boys Halfway House",
+    "code_patterns": ["Incident ###", "Incident \\# ###"],
+    "normalize": { "strip_prefix_letters": true, "strip_leading_zeros": true },
+    "studio_relationship": "can_set",
+    "allow_suffix": true
+  },
+  {
+    "studio": null,
+    "code_patterns": ["MK#######"],
+    "normalize": { "strip_prefix_letters": true, "strip_leading_zeros": true },
+    "studio_relationship": "can_set",
+    "allow_suffix": true
+  },
+  {
+    "studio": null,
+    "code_patterns": ["re:[A-Z]{2,4}[-\\s]?\\d{3,5}"],
+    "studio_relationship": "can_set",
+    "allow_suffix": true
+  }
+]

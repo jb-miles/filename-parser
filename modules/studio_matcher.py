@@ -9,24 +9,62 @@ the pattern is updated accordingly.
 
 import json
 import re
-from typing import Dict, List, Set, Optional, Tuple
+from typing import Dict, List, Set, Optional, Tuple, Any, TYPE_CHECKING
 from .tokenizer import TokenizationResult, Token
 from .dictionary_loader import DictionaryLoader
+
+if TYPE_CHECKING:
+    from .stash_client import SceneStudio
 
 
 class StudioMatcher:
     """Matches tokens against known studios and their aliases."""
 
-    def __init__(self):
-        """Initialize studio matcher with studios dictionary."""
+    def __init__(self, stash_studios: Optional[List[Any]] = None):
+        """
+        Initialize studio matcher with studios from Stash API or static dictionary.
+
+        Args:
+            stash_studios: Optional list of SceneStudio objects from Stash API.
+                          If provided, uses Stash's database instead of static JSON.
+        """
         self.studios: Dict[str, str] = {}  # Lower-case name/alias -> canonical name
         self.canonical_names: Set[str] = set()  # Original canonical names for reference
         self.exact_only_keys: Set[str] = set()  # Studio keys (lowercase) that require exact-only matching
-        self._load_studios()
 
-    def _load_studios(self) -> None:
+        if stash_studios is not None:
+            self._load_studios_from_stash(stash_studios)
+        else:
+            self._load_studios_from_json()
+
+    def _load_studios_from_stash(self, stash_studios: List[Any]) -> None:
         """
-        Load studios dictionary and build lookup structure.
+        Load studios from Stash API.
+
+        Args:
+            stash_studios: List of SceneStudio objects from Stash with id, name, and aliases
+        """
+        for studio in stash_studios:
+            # Get studio name (this is the canonical name in Stash)
+            canonical_name = studio.name
+            if not canonical_name:
+                continue
+
+            # Add canonical name (case-insensitive)
+            canonical_lower = canonical_name.lower()
+            self.studios[canonical_lower] = canonical_name
+            self.canonical_names.add(canonical_name)
+
+            # Add aliases from Stash
+            aliases = studio.aliases or []
+            for alias in aliases:
+                if alias:
+                    alias_lower = alias.lower()
+                    self.studios[alias_lower] = canonical_name
+
+    def _load_studios_from_json(self) -> None:
+        """
+        Load studios from static JSON dictionary (fallback).
 
         Supports exact-only marker (^) suffix on canonical names and aliases.
         Example: "Bang^" will only match exact "Bang", not partial matches.
@@ -49,6 +87,10 @@ class StudioMatcher:
             canonical_lower = canonical_name.lower()
             self.studios[canonical_lower] = canonical_name
             self.canonical_names.add(canonical_name)
+
+            # Guardrail: prevent overly-generic keys from driving partial matches.
+            if canonical_lower in {"unknown"}:
+                self.exact_only_keys.add(canonical_lower)
 
             if exact_only_canonical:
                 self.exact_only_keys.add(canonical_lower)

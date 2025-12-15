@@ -102,6 +102,8 @@ class SequenceExtractor:
 
         Marks tokens that contain sequence info and stores the sequences.
 
+        Directory-agnostic: does not consider parent folders or path tokens.
+
         Args:
             result: TokenizationResult from previous processing
 
@@ -122,19 +124,6 @@ class SequenceExtractor:
                     sequences.append(seq)
                     # Mark token as sequence type
                     token.type = 'sequence'
-
-        # Check path for volume information and extract group
-        path_token = next((t for t in result.tokens if t.type == 'path'), None)
-        if path_token:
-            # Extract parent directory (group = immediate parent directory)
-            path_parts = path_token.value.split('/')
-            if len(path_parts) > 0:
-                parent_dir = path_parts[-1] if path_parts[-1] else (path_parts[-2] if len(path_parts) > 1 else None)
-                if parent_dir:
-                    # Also check for volume in parent directory
-                    vol_seq = self.extract_from_token(parent_dir, studio)
-                    if vol_seq and 'volume' in vol_seq:
-                        sequences.append(vol_seq)
 
         # Merge sequences into a single dict (last wins for duplicates)
         merged_sequence = {}

@@ -73,8 +73,10 @@ class PreTokenizer:
 
     def process(self, filename: str) -> PreTokenizationResult:
         """Process filename by removing early removal tokens."""
-        path_obj = Path(filename)
-        basename = path_obj.name
+        # Directory-agnostic: strip any parent folders from both POSIX ("/")
+        # and Windows ("\\") separators before processing.
+        normalized = str(filename).replace("\\", "/").rstrip("/")
+        basename = normalized.rsplit("/", 1)[-1] if normalized else ""
 
         result = PreTokenizationResult(
             original=filename,

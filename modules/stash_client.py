@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """
-Stash GraphQL API client for querying and updating scene metadata.
+Stash GraphQL API client wrapper using StashAPI (stashapi).
 
-This module provides a small Python interface to Stash's GraphQL API, with
-specialized methods for:
+This module provides a small, plugin-friendly interface to Stash's GraphQL API,
+with specialized methods for:
 - querying unorganized scenes (organized=false)
 - fetching scenes by id
 - resolving studios by name
 - applying scene updates (single and bulk)
-
-The plugin uses this client to keep all Stash-specific API logic in one place.
 """
 
 from __future__ import annotations
@@ -18,7 +16,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
-import requests
+from stashapi.stashapp import StashInterface
 
 
 @dataclass
@@ -46,7 +44,6 @@ class ScenePerformer:
 
     id: str
     name: str
-    aliases: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -66,68 +63,89 @@ class Scene:
 
 class StashClient:
     """
-    Client for interacting with Stash GraphQL API.
+    Client for interacting with Stash GraphQL API using stashapp-tools.
 
     Stash provides the plugin with connection details and a session cookie in
-    the plugin input payload. This client encapsulates authentication,
-    pagination, and update mutation helpers.
+    the plugin input payload. This client wraps the official StashInterface
+    for better maintainability and automatic API updates.
     """
 
     def __init__(self, server_connection: Dict[str, Any], host: str = "localhost"):
-        self.port = server_connection.get("Port", 9999)
-        self.scheme = server_connection.get("Scheme", "http")
-        self.host = server_connection.get("Host") or server_connection.get("Hostname") or host
-        self.url = f"{self.scheme}://{self.host}:{self.port}/graphql"
+        """
+        Initialize Stash client from server_connection dict.
+
+        Args:
+            server_connection: Connection details from Stash plugin input
+            host: Default hostname if not provided in server_connection
+        """
+        # Build connection dict for StashInterface
+        port = server_connection.get("Port", 9999)
+        scheme = server_connection.get("Scheme", "http")
+        hostname = server_connection.get("Host") or server_connection.get("Hostname") or host
 
         session_cookie = server_connection.get("SessionCookie") or {}
-        cookie_name = session_cookie.get("Name") or "session"
-        cookie_value = session_cookie.get("Value") or ""
-        self.cookies = {cookie_name: cookie_value} if cookie_value else {}
+        api_key = server_connection.get("ApiKey") or ""
 
-        self.headers = {
-            "Accept-Encoding": "gzip, deflate, br",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Connection": "keep-alive",
-            "DNT": "1",
+        conn = {
+            "scheme": scheme,
+            "host": hostname,
+            "port": port,
+            "SessionCookie": session_cookie,
+            "ApiKey": api_key,
         }
 
+        # Initialize StashInterface. StashAPI auto-generates fragments via schema introspection.
+        self.stash = StashInterface(conn)
+
+        # Legacy properties for backwards compatibility
+        self.url = f"{scheme}://{hostname}:{port}/graphql"
         self.max_retries = 3
         self.retry_delay = 1.0
         self.timeout = 30
 
+        # Selection sets used to override the default "...Scene"/"...Studio" fragment in StashAPI.
+        self.scene_fragment = """
+            id
+            title
+            date
+            code
+            organized
+            studio {
+                id
+                name
+            }
+            files {
+                id
+                path
+                basename
+                parent_folder { path }
+            }
+            performers {
+                id
+                name
+            }
+        """
+        self.studio_fragment = """
+            id
+            name
+            aliases
+        """
+
     def call_graphql(self, query: str, variables: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        json_data: Dict[str, Any] = {"query": query}
-        if variables:
-            json_data["variables"] = variables
+        """
+        Call GraphQL API directly (for custom queries not covered by StashInterface).
 
-        last_error: Optional[Exception] = None
-        for attempt in range(self.max_retries):
-            try:
-                response = requests.post(
-                    self.url,
-                    json=json_data,
-                    headers=self.headers,
-                    cookies=self.cookies,
-                    timeout=self.timeout,
-                )
+        Args:
+            query: GraphQL query string
+            variables: Query variables
 
-                if response.status_code != 200:
-                    raise RuntimeError(f"HTTP {response.status_code}: {response.content!r}")
+        Returns:
+            Response data dict
 
-                result = response.json()
-                if "errors" in result and result["errors"]:
-                    raise RuntimeError(f"GraphQL errors: {result['errors']}")
-
-                return result.get("data", {}) or {}
-            except Exception as exc:  # noqa: BLE001 - we want to retry any failure here
-                last_error = exc
-                if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay * (2**attempt))
-                    continue
-                raise RuntimeError(f"GraphQL query failed after retries: {last_error}") from last_error
-
-        raise RuntimeError("Unreachable: retry loop should have returned or raised")
+        Raises:
+            RuntimeError: If query fails after retries
+        """
+        return self.stash.call_GQL(query, variables or {})
 
     def find_unorganized_scenes(
         self,
@@ -135,66 +153,68 @@ class StashClient:
         per_page: int = 50,
         studio_ids: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        query = """
-        query FindUnorganizedScenes($filter: FindFilterType, $scene_filter: SceneFilterType) {
-            findScenes(filter: $filter, scene_filter: $scene_filter) {
-                count
-                scenes {
-                    id
-                    title
-                    date
-                    code
-                    studio {
-                        id
-                        name
-                        aliases
-                    }
-                    files {
-                        id
-                        path
-                        basename
-                        parent_folder {
-                            path
-                        }
-                    }
-                    performers {
-                        id
-                        name
-                        aliases
-                    }
-                    tags {
-                        id
-                        name
-                    }
-                    organized
-                }
-            }
-        }
         """
+        Find scenes marked as unorganized.
 
-        variables: Dict[str, Any] = {
-            "filter": {"page": page, "per_page": per_page, "sort": "title"},
-            "scene_filter": {
-                "organized": {"value": False, "modifier": "EQUALS"},
-            },
-        }
+        Args:
+            page: Page number (1-indexed)
+            per_page: Items per page
+            studio_ids: Optional list of studio IDs to filter by
+
+        Returns:
+            Dict with 'findScenes' key containing scenes and count
+        """
+        scene_filter: Dict[str, Any] = {"organized": False}
 
         if studio_ids:
-            variables["scene_filter"]["studios"] = {"value": studio_ids, "modifier": "INCLUDES"}
+            studio_id_ints: List[int] = []
+            for studio_id in studio_ids:
+                try:
+                    studio_id_ints.append(int(studio_id))
+                except (TypeError, ValueError):
+                    continue
+            if studio_id_ints:
+                scene_filter["studios"] = {"value": studio_id_ints, "modifier": "INCLUDES"}
 
-        return self.call_graphql(query, variables)
+        filter_dict = {"page": page, "per_page": per_page, "sort": "title"}
+
+        count, scenes = self.stash.find_scenes(
+            f=scene_filter,
+            filter=filter_dict,
+            fragment=self.scene_fragment,
+            get_count=True,
+        )
+        return {"findScenes": {"count": count, "scenes": scenes}}
 
     def get_all_unorganized_scenes(
         self,
         studio_ids: Optional[List[str]] = None,
         progress_callback: Optional[Callable[[int, int], None]] = None,
+        limit: Optional[int] = None,
     ) -> List[Scene]:
+        """
+        Get all unorganized scenes with pagination.
+
+        Args:
+            studio_ids: Optional list of studio IDs to filter by
+            progress_callback: Optional callback(current, total) for progress updates
+
+        Returns:
+            List of Scene objects
+        """
         all_scenes: List[Scene] = []
         page = 1
         per_page = 100
 
         while True:
-            result = self.find_unorganized_scenes(page=page, per_page=per_page, studio_ids=studio_ids)
+            if limit is not None and limit > 0 and len(all_scenes) >= limit:
+                break
+
+            per_page_effective = per_page
+            if limit is not None and limit > 0:
+                per_page_effective = min(per_page, limit - len(all_scenes))
+
+            result = self.find_unorganized_scenes(page=page, per_page=per_page_effective, studio_ids=studio_ids)
             scenes_data = result.get("findScenes", {}) or {}
             scenes = scenes_data.get("scenes", []) or []
             if not scenes:
@@ -202,6 +222,8 @@ class StashClient:
 
             for scene_data in scenes:
                 all_scenes.append(self._parse_scene_data(scene_data))
+                if limit is not None and limit > 0 and len(all_scenes) >= limit:
+                    break
 
             if progress_callback:
                 total = int(scenes_data.get("count") or 0)
@@ -211,126 +233,60 @@ class StashClient:
             if total and len(all_scenes) >= total:
                 break
 
+            if limit is not None and limit > 0 and len(all_scenes) >= limit:
+                break
+
             page += 1
 
         return all_scenes
 
     def get_scene_by_id(self, scene_id: str) -> Optional[Scene]:
         """
-        Fetch a single scene.
+        Fetch a single scene by ID.
 
-        Stash schemas vary slightly by version; we try a direct `findScene` query
-        first, then fall back to `findScenes` with an ID filter.
-        """
-        # Attempt 1: findScene(id: ID!)
-        find_scene_query = """
-        query FindScene($id: ID!) {
-            findScene(id: $id) {
-                id
-                title
-                date
-                code
-                studio { id name aliases }
-                files {
-                    id
-                    path
-                    basename
-                    parent_folder { path }
-                }
-                performers { id name aliases }
-                tags { id name }
-                organized
-            }
-        }
-        """
+        Args:
+            scene_id: Scene ID
 
+        Returns:
+            Scene object or None if not found
+        """
         try:
-            data = self.call_graphql(find_scene_query, {"id": scene_id})
-            scene_data = data.get("findScene")
+            scene_data = self.stash.find_scene(int(scene_id), fragment=self.scene_fragment)
             if scene_data:
                 return self._parse_scene_data(scene_data)
         except Exception:
             pass
 
-        # Attempt 2: findScenes + ids criterion
-        find_scenes_query = """
-        query FindScenesById($filter: FindFilterType, $scene_filter: SceneFilterType) {
-            findScenes(filter: $filter, scene_filter: $scene_filter) {
-                scenes {
-                    id
-                    title
-                    date
-                    code
-                    studio { id name aliases }
-                    files {
-                        id
-                        path
-                        basename
-                        parent_folder { path }
-                    }
-                    performers { id name aliases }
-                    tags { id name }
-                    organized
-                }
-            }
-        }
-        """
-
-        variables = {
-            "filter": {"page": 1, "per_page": 1},
-            "scene_filter": {"ids": {"value": [scene_id], "modifier": "INCLUDES"}},
-        }
-
-        data = self.call_graphql(find_scenes_query, variables)
-        scenes = (data.get("findScenes", {}) or {}).get("scenes", []) or []
-        if scenes:
-            return self._parse_scene_data(scenes[0])
-
         return None
 
     def get_scenes_by_ids(self, scene_ids: List[str]) -> List[Scene]:
         """
-        Fetch scenes by ids.
+        Fetch multiple scenes by IDs.
 
-        Uses `findScenes` with an ids criterion when available; falls back to
-        sequential `get_scene_by_id` calls.
+        Args:
+            scene_ids: List of scene IDs
+
+        Returns:
+            List of Scene objects
         """
         if not scene_ids:
             return []
 
-        find_scenes_query = """
-        query FindScenesByIds($filter: FindFilterType, $scene_filter: SceneFilterType) {
-            findScenes(filter: $filter, scene_filter: $scene_filter) {
-                scenes {
-                    id
-                    title
-                    date
-                    code
-                    studio { id name aliases }
-                    files {
-                        id
-                        path
-                        basename
-                        parent_folder { path }
-                    }
-                    performers { id name aliases }
-                    tags { id name }
-                    organized
-                }
-            }
-        }
-        """
+        ids_as_ints: List[int] = []
+        for scene_id in scene_ids:
+            try:
+                ids_as_ints.append(int(scene_id))
+            except (TypeError, ValueError):
+                continue
 
-        variables = {
-            "filter": {"page": 1, "per_page": len(scene_ids)},
-            "scene_filter": {"ids": {"value": scene_ids, "modifier": "INCLUDES"}},
-        }
+        scene_filter = {"ids": {"value": ids_as_ints, "modifier": "INCLUDES"}}
+        filter_dict = {"page": 1, "per_page": len(ids_as_ints)}
 
         try:
-            data = self.call_graphql(find_scenes_query, variables)
-            scenes = (data.get("findScenes", {}) or {}).get("scenes", []) or []
+            scenes = self.stash.find_scenes(f=scene_filter, filter=filter_dict, fragment=self.scene_fragment)
             return [self._parse_scene_data(s) for s in scenes]
         except Exception:
+            # Fallback to sequential fetching
             result: List[Scene] = []
             for scene_id in scene_ids:
                 scene = self.get_scene_by_id(scene_id)
@@ -339,22 +295,20 @@ class StashClient:
             return result
 
     def find_studio_by_name(self, name: str, exact: bool = True) -> Optional[SceneStudio]:
-        query = """
-        query FindStudios($name: String!, $modifier: CriterionModifier!) {
-            findStudios(
-                studio_filter: {
-                    name: { value: $name, modifier: $modifier }
-                }
-                filter: { per_page: 1 }
-            ) {
-                studios { id name aliases }
-            }
-        }
         """
+        Find studio by name.
 
-        variables = {"name": name, "modifier": "EQUALS" if exact else "INCLUDES"}
-        result = self.call_graphql(query, variables)
-        studios = (result.get("findStudios", {}) or {}).get("studios", []) or []
+        Args:
+            name: Studio name to search for
+            exact: Use exact match (EQUALS) vs fuzzy match (INCLUDES)
+
+        Returns:
+            SceneStudio object or None if not found
+        """
+        modifier = "EQUALS" if exact else "INCLUDES"
+        studio_filter = {"name": {"value": name, "modifier": modifier}}
+
+        studios = self.stash.find_studios(f=studio_filter, filter={"per_page": 1}, fragment=self.studio_fragment)
         if not studios:
             return None
 
@@ -365,6 +319,50 @@ class StashClient:
             aliases=studio_data.get("aliases") or [],
         )
 
+    def get_all_studios(self, progress_callback: Optional[Callable[[int, int], None]] = None) -> List[SceneStudio]:
+        """
+        Fetch all studios from Stash with pagination.
+
+        Args:
+            progress_callback: Optional callback(current, total) for progress updates
+
+        Returns:
+            List of SceneStudio objects with id, name, and aliases
+        """
+        all_studios: List[SceneStudio] = []
+        page = 1
+        per_page = 100
+
+        while True:
+            total, studios = self.stash.find_studios(
+                filter={"page": page, "per_page": per_page},
+                fragment=self.studio_fragment,
+                get_count=True,
+            )
+
+            if not studios:
+                break
+
+            for studio_data in studios:
+                all_studios.append(
+                    SceneStudio(
+                        id=str(studio_data["id"]),
+                        name=studio_data["name"],
+                        aliases=studio_data.get("aliases") or [],
+                    )
+                )
+
+            if progress_callback:
+                progress_callback(len(all_studios), int(total or 0))
+
+            total_int = int(total or 0)
+            if total_int and len(all_studios) >= total_int:
+                break
+
+            page += 1
+
+        return all_studios
+
     def update_scene_metadata(
         self,
         scene_id: str,
@@ -374,19 +372,20 @@ class StashClient:
         studio_id: Optional[str] = None,
         organized: Optional[bool] = None,
     ) -> Optional[Dict[str, Any]]:
-        query = """
-        mutation SceneUpdate($input: SceneUpdateInput!) {
-            sceneUpdate(input: $input) {
-                id
-                title
-                date
-                code
-                studio { id name }
-                organized
-            }
-        }
         """
+        Update scene metadata.
 
+        Args:
+            scene_id: Scene ID to update
+            title: New title
+            date: New date
+            code: New studio code
+            studio_id: New studio ID
+            organized: New organized status
+
+        Returns:
+            Updated scene data or None
+        """
         input_data: Dict[str, Any] = {"id": scene_id}
         if title is not None:
             input_data["title"] = title
@@ -399,8 +398,7 @@ class StashClient:
         if organized is not None:
             input_data["organized"] = organized
 
-        result = self.call_graphql(query, {"input": input_data})
-        return result.get("sceneUpdate")
+        return self.stash.update_scene(input_data)
 
     def bulk_update_scenes(
         self,
@@ -408,25 +406,27 @@ class StashClient:
         progress_callback: Optional[Callable[[int, int], None]] = None,
         batch_size: int = 20,
     ) -> List[Dict[str, Any]]:
-        query = """
-        mutation BulkSceneUpdate($updates: [SceneUpdateInput!]!) {
-            bulkSceneUpdate(input: $updates) {
-                id
-                title
-                date
-                code
-                studio { id name }
-                organized
-            }
-        }
         """
+        Bulk update multiple scenes.
 
+        Args:
+            updates: List of scene update dicts (each with 'id' and fields to update)
+            progress_callback: Optional callback(current, total) for progress updates
+            batch_size: Number of updates per batch
+
+        Returns:
+            List of updated scene data
+        """
         all_results: List[Dict[str, Any]] = []
+
         for i in range(0, len(updates), batch_size):
             batch = updates[i : i + batch_size]
-            result = self.call_graphql(query, {"updates": batch})
-            batch_results = result.get("bulkSceneUpdate", []) or []
-            all_results.extend(batch_results)
+
+            # Update scenes one by one (stashapp-tools doesn't have bulk update method)
+            for update in batch:
+                result = self.stash.update_scene(update)
+                if result:
+                    all_results.append(result)
 
             if progress_callback:
                 progress_callback(min(i + len(batch), len(updates)), len(updates))
@@ -437,6 +437,15 @@ class StashClient:
         return all_results
 
     def _parse_scene_data(self, scene_data: Dict[str, Any]) -> Scene:
+        """
+        Parse scene data from GraphQL response into Scene object.
+
+        Args:
+            scene_data: Raw scene data dict from GraphQL
+
+        Returns:
+            Scene object
+        """
         studio_data = scene_data.get("studio")
         studio = None
         if studio_data:
@@ -464,7 +473,6 @@ class StashClient:
                 ScenePerformer(
                     id=str(performer_data["id"]),
                     name=performer_data.get("name") or "",
-                    aliases=performer_data.get("aliases") or [],
                 )
             )
 

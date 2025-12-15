@@ -27,10 +27,9 @@ sys.path.insert(0, str(ROOT))
 
 from yansa import FilenameParser
 from modules import PreTokenizer
-from openpyxl import Workbook, load_workbook
-from openpyxl.styles import PatternFill, Font
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl import load_workbook
+
+from modules.excel_writer import ExcelSheetData, write_excel_workbook
 
 
 @dataclass
@@ -277,7 +276,7 @@ def parse_filename(parser: FilenameParser, filename: str) -> ParsedRow:
 
     # Calculate unlabeled filename tokens only
     unlabeled_filename_tokens = set()
-    labeled_types = {'date', 'studio', 'studio_code', 'performers', 'sequence', 'title'}
+    labeled_types = {'date', 'studio', 'studio_code', 'performers', 'sequence', 'group', 'title'}
     for token in filename_tokens:
         if token.type not in labeled_types and token.value.strip():
             unlabeled_filename_tokens.add(token.value)
@@ -636,59 +635,6 @@ def is_discrepancy_value(value: Any) -> bool:
     return '{"expected":' in value_str or '"expected":' in value_str
 
 
-def write_excel_sheet(ws, rows: List[ParsedRow], sheet_name: str, highlight_discrepancies: bool = False):
-    """Helper to write a single sheet with data."""
-    ws.title = sheet_name
-
-    # Write header
-    headers = ParsedRow.get_headers()
-    for col_idx, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col_idx, value=header)
-
-    # Define yellow fill for discrepancies
-    yellow_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
-
-    # Write data rows
-    for row_idx, row in enumerate(rows, 2):
-        excel_row = row.to_excel_row()
-        for col_idx, value in enumerate(excel_row, 1):
-            cell = ws.cell(row=row_idx, column=col_idx, value=value)
-
-            # Highlight discrepancies in yellow if enabled
-            if highlight_discrepancies and is_discrepancy_value(value):
-                cell.fill = yellow_fill
-
-    # Auto-adjust column widths
-    for col_idx in range(1, len(headers) + 1):
-        col_letter = get_column_letter(col_idx)
-        max_length = len(headers[col_idx - 1])
-
-        for row in ws.iter_rows(min_col=col_idx, max_col=col_idx):
-            for cell in row:
-                if cell.value:
-                    max_length = max(max_length, len(str(cell.value)))
-
-        ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
-
-    # Add table formatting
-    if len(rows) > 0:
-        last_col = get_column_letter(len(headers))
-        data_range = f"A1:{last_col}{len(rows) + 1}"
-
-        # Use unique table name based on sheet name
-        table_name = sheet_name.replace(" ", "") + "Table"
-        table = Table(displayName=table_name, ref=data_range)
-        style = TableStyleInfo(
-            name='TableStyleMedium9',
-            showFirstColumn=False,
-            showLastColumn=False,
-            showRowStripes=True,
-            showColumnStripes=False
-        )
-        table.tableStyleInfo = style
-        ws.add_table(table)
-
-
 def write_excel_output(rows: List[ParsedRow], output_path: Union[str, Path], mode: str,
                        reference_rows: Optional[List[ParsedRow]] = None,
                        diff_rows: Optional[List[ParsedRow]] = None):
@@ -699,31 +645,53 @@ def write_excel_output(rows: List[ParsedRow], output_path: Union[str, Path], mod
     For reference mode: three sheets (Reference, Results, Diff)
     In reference mode, discrepancies in the Diff sheet are highlighted in yellow.
     """
-    output_path = Path(output_path)
-    wb = Workbook()
+    rows_values = [row.to_excel_row() for row in rows]
+    headers = ParsedRow.get_headers()
 
+    sheets: List[ExcelSheetData] = []
     if mode == 'blind':
-        # Single sheet for blind mode
-        ws = wb.active
-        if ws:
-            write_excel_sheet(ws, rows, "Filename Parser Results")
+        sheets.append(
+            ExcelSheetData(
+                name="Filename Parser Results",
+                headers=headers,
+                rows=rows_values,
+            )
+        )
     else:
-        # Three sheets for reference mode
         if reference_rows and diff_rows:
-            # Sheet 1: Reference
-            ws_ref = wb.active
-            if ws_ref:
-                write_excel_sheet(ws_ref, reference_rows, "Reference")
+            sheets.append(
+                ExcelSheetData(
+                    name="Reference",
+                    headers=headers,
+                    rows=[row.to_excel_row() for row in reference_rows],
+                )
+            )
+            sheets.append(
+                ExcelSheetData(
+                    name="Results",
+                    headers=headers,
+                    rows=rows_values,
+                )
+            )
+            sheets.append(
+                ExcelSheetData(
+                    name="Diff",
+                    headers=headers,
+                    rows=[row.to_excel_row() for row in diff_rows],
+                    highlight_discrepancies=True,
+                    discrepancy_predicate=is_discrepancy_value,
+                )
+            )
+        else:
+            sheets.append(
+                ExcelSheetData(
+                    name="Results",
+                    headers=headers,
+                    rows=rows_values,
+                )
+            )
 
-            # Sheet 2: Results
-            ws_results = wb.create_sheet("Results")
-            write_excel_sheet(ws_results, rows, "Results")
-
-            # Sheet 3: Diff (with yellow highlighting for discrepancies)
-            ws_diff = wb.create_sheet("Diff")
-            write_excel_sheet(ws_diff, diff_rows, "Diff", highlight_discrepancies=True)
-
-    wb.save(output_path)
+    write_excel_workbook(output_path, sheets)
 
 
 def write_json_metrics(metrics: Dict[str, Any], output_path: Union[str, Path]):

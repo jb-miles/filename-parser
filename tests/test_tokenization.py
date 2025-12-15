@@ -199,8 +199,6 @@ def test_path_parser_isolates_basename(parser):
 
     final_result = parser.parse(filename)
     path_token = next((t for t in final_result.tokens or [] if t.type == 'path'), None)
-    assert path_token is not None
-    assert path_token.value == "parent/child"
+    assert path_token is None
     assert final_result.cleaned == pre_result.cleaned
-    assert final_result.group == "child"
-    assert final_result.sources and final_result.sources.get("group") == "path"
+    assert final_result.group is None

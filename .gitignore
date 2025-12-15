@@ -34,7 +34,7 @@ wheels/
 .coverage
 htmlcov/
 .tox/
-
+reports/
 
 # IDEs
 .vscode/

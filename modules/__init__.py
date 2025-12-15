@@ -30,6 +30,7 @@ from .studio_matcher import StudioMatcher
 from .studio_code_finder import StudioCodeFinder
 from .performer_matcher import PerformerMatcher
 from .sequence_extractor import SequenceExtractor
+from .final_stage_extractor import FinalStageExtractor
 from .title_extractor import TitleExtractor
 
 __all__ = [
@@ -49,5 +50,6 @@ __all__ = [
     'StudioCodeFinder',
     'PerformerMatcher',
     'SequenceExtractor',
+    'FinalStageExtractor',
     'TitleExtractor',
 ]

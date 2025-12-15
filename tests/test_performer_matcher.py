@@ -171,6 +171,31 @@ def test_performer_pattern_in_full_parse(parser):
         assert performer_tokens[0].value == "John Smith, Jane Doe"
 
 
+def test_performer_allows_trailing_initials(performer_matcher):
+    """Performer matcher should allow trailing single-letter initials like 'Igor C'."""
+    result = TokenizationResult(
+        original="Peter Shadow, Tom Taylor & Igor C",
+        cleaned="Peter Shadow, Tom Taylor & Igor C",
+        pattern="{token0}",
+        tokens=[Token(value="Peter Shadow, Tom Taylor & Igor C", type="text", position=0)],
+    )
+    processed = performer_matcher.process(result)
+    assert processed.tokens[0].type == "performers"
+
+
+def test_performer_html_amp_entity(performer_matcher):
+    """Performer matcher should treat '&amp;' as '&'."""
+    result = TokenizationResult(
+        original="Devil, Enrico Belaggio, James Jones &amp; Tom Ryan",
+        cleaned="Devil, Enrico Belaggio, James Jones &amp; Tom Ryan",
+        pattern="{token0}",
+        tokens=[Token(value="Devil, Enrico Belaggio, James Jones &amp; Tom Ryan", type="text", position=0)],
+    )
+    processed = performer_matcher.process(result)
+    assert processed.tokens[0].type == "performers"
+    assert processed.tokens[0].value == "Devil, Enrico Belaggio, James Jones, Tom Ryan"
+
+
 def test_performer_initialization(performer_matcher):
     """Test that performer matcher loads non-performer words."""
     assert len(performer_matcher.non_performer_words) > 0

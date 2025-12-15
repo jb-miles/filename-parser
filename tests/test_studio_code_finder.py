@@ -257,5 +257,47 @@ def test_studio_code_allows_suffix(studio_code_finder):
         assert processed.studio == "Corbin Fisher"
 
 
+def test_scary_fuckers_numeric_pair_sets_studio_code(studio_code_finder):
+    """When studio is Scary Fuckers, '<3-5 digits> <2 digits>' becomes a studio_code."""
+    token = Token(value="1234 56_1080p", type="text", position=0)
+    result = TokenizationResult(
+        original="1234 56_1080p - Title",
+        cleaned="1234 56_1080p - Title",
+        pattern="{token0} - {token1}",
+        tokens=[token, Token(value="Title", type="text", position=14)],
+        studio="Scary Fuckers",
+    )
+
+    processed = studio_code_finder.process(result)
+    code_tokens = [t for t in processed.tokens if t.type == "studio_code"]
+    assert code_tokens
+    assert code_tokens[0].value == "0123456"
+    assert getattr(processed, "studio_code", None) == "0123456"
+
+
+def test_scary_fuckers_numeric_pair_requires_studio_context(studio_code_finder):
+    """The numeric-pair rule should not run without Scary Fuckers studio context."""
+    token = Token(value="1234 56", type="text", position=0)
+    result = TokenizationResult(
+        original="1234 56 - Title",
+        cleaned="1234 56 - Title",
+        pattern="{token0} - {token1}",
+        tokens=[token, Token(value="Title", type="text", position=9)],
+        studio=None,
+    )
+
+    processed = studio_code_finder.process(result)
+    assert all(t.type != "studio_code" for t in (processed.tokens or []))
+
+
+def test_parser_existing_studio_enables_scary_fuckers_numeric_pair(parser):
+    """Parser existing_studio should enable Scary Fuckers numeric-pair code detection."""
+    result = parser.parse("123 45 - Title", existing_studio="Scary Fuckers")
+    code_tokens = [t for t in (result.tokens or []) if t.type == "studio_code"]
+    assert code_tokens
+    assert code_tokens[0].value == "0012345"
+    assert getattr(result, "studio_code", None) == "0012345"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

@@ -58,7 +58,7 @@ def test_studio_match_with_delimiters(parser):
     assert result.tokens[0].value == "Active Duty"
 
     # Verify pattern is updated
-    assert result.pattern == "{studio} - {token1}"
+    assert result.pattern == "{studio} - {title}"
 
 
 def test_studio_match_with_brackets(parser):
@@ -67,7 +67,7 @@ def test_studio_match_with_brackets(parser):
 
     # Verify studio token in brackets
     assert result.tokens[0].type == "studio"
-    assert result.pattern == "[{studio}] {token1}"
+    assert result.pattern == "[{studio}] {title}"
 
 
 def test_studio_match_with_parentheses(parser):
@@ -78,25 +78,30 @@ def test_studio_match_with_parentheses(parser):
     assert result.tokens[0].type == "studio"
     # Studio matcher returns canonical name, not the alias
     assert result.tokens[0].value == "Adam & Eve Pictures"
-    assert result.pattern == "({studio}) {token1}"
+    assert result.pattern == "({studio}) {title}"
 
 
 def test_no_studio_match(parser):
     """Test filename with no studio match."""
     result = parser.parse("Unknown Studio - Scene Title")
 
-    # Verify first token is marked as title (by TitleExtractor at end of pipeline)
-    assert result.tokens[0].type == "title"
-    assert result.pattern == "{token0} - {token1}"
+    # Final-stage logic: two remaining text tokens -> group then title
+    assert result.tokens[0].type == "group"
+    assert result.tokens[0].value == "Unknown Studio"
+    assert result.tokens[1].type == "title"
+    assert result.tokens[1].value == "Scene Title"
+    assert result.pattern == "{token0} - {title}"
 
 
 def test_multiple_tokens_first_studio_matched(parser):
     """Test that when multiple tokens could be studios, matching works."""
     result = parser.parse("Academy Video - Active Duty Scene")
 
-    # Only "Academy Video" should be matched (it's a separate token)
-    assert result.tokens[0].type == "studio"
+    # Studio is extracted from the second token; remaining structure becomes group + title.
+    assert result.studio == "Active Duty"
+    assert result.tokens[0].type == "group"
     assert result.tokens[0].value == "Academy Video"
+    assert result.tokens[-1].type == "title"
 
 
 def test_studio_match_json_output(parser):
@@ -106,7 +111,7 @@ def test_studio_match_json_output(parser):
     parsed = json.loads(json_str)
 
     # Verify pattern in JSON
-    assert parsed["pattern"] == "{studio} - {token1}"
+    assert parsed["pattern"] == "{studio} - {title}"
 
     # Verify token data in JSON
     assert parsed["tokens"][0]["type"] == "studio"
@@ -173,10 +178,11 @@ def test_no_partial_studio_matches(parser):
     result = parser.parse("Active Theory - Scene Name")
 
     # "Active Theory" should not match "Active Duty" as a studio
-    # The first token should be marked as title (by TitleExtractor at end of pipeline)
-    if result.tokens[0].type != "studio":
-        assert result.tokens[0].type == "title"
-        assert result.tokens[0].value == "Active Theory"
+    assert result.studio is None
+    assert result.tokens[0].type == "group"
+    assert result.tokens[0].value == "Active Theory"
+    assert result.tokens[1].type == "title"
+    assert result.tokens[1].value == "Scene Name"
 
 
 def test_studio_metadata_set(parser):

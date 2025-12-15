@@ -7,7 +7,7 @@ the token type is changed to 'studio_code' and the pattern is updated accordingl
 """
 
 import re
-from typing import Dict, List, Optional, Tuple, Pattern
+from typing import Any, Dict, List, Optional, Tuple, Pattern
 from .tokenizer import TokenizationResult, Token
 from .dictionary_loader import DictionaryLoader
 
@@ -17,38 +17,68 @@ class StudioCodeFinder:
 
     def __init__(self):
         """Initialize studio code finder with studio code patterns."""
-        self.studio_code_patterns: List[Tuple[Pattern, Dict[str, str]]] = []
+        self.studio_code_patterns: List[Tuple[Pattern, Dict[str, Any]]] = []
         self._load_studio_codes()
 
     def _load_studio_codes(self) -> None:
-        """Load studio codes from parser dictionary."""
-        studio_codes = DictionaryLoader.get_section('studio_codes')
-        if not studio_codes:
+        """Load studio-code rules from dedicated JSON file."""
+        studio_code_rules = DictionaryLoader.load_dictionary("studio_codes.json")
+        if not studio_code_rules or not isinstance(studio_code_rules, list):
             return
 
-        for studio_code in studio_codes:
-            pattern = studio_code.get('regex') or studio_code.get('code', '')
-            if not pattern:
+        for rule in studio_code_rules:
+            if not isinstance(rule, dict):
                 continue
 
-            allow_suffix = bool(studio_code.get('allow_suffix'))
-            regex = self._pattern_to_regex(
-                pattern,
-                is_regex=bool(studio_code.get('regex')),
-                allow_suffix=allow_suffix
-            )
-            if not regex:
+            studio = rule.get("studio")
+            allow_suffix = bool(rule.get("allow_suffix"))
+            normalize = rule.get("normalize") or {}
+            relationship = str(rule.get("studio_relationship") or "can_set").strip().lower()
+            if relationship not in {"requires", "can_set"}:
+                relationship = "can_set"
+
+            patterns = rule.get("code_patterns") or []
+            if isinstance(patterns, str):
+                patterns = [patterns]
+            if not isinstance(patterns, list):
                 continue
 
-            self.studio_code_patterns.append((
-                regex,
-                {
-                    'studio': studio_code.get('studio'),
-                    'pattern': pattern,
-                    'normalize': studio_code.get('normalize') or {},
-                    'code_group': studio_code.get('code_group', 1 if allow_suffix else 0)
-                }
-            ))
+            for raw_pattern in patterns:
+                if not raw_pattern or not isinstance(raw_pattern, str):
+                    continue
+
+                pattern = raw_pattern.strip()
+                if not pattern:
+                    continue
+
+                is_regex = False
+                if pattern.lower().startswith("re:"):
+                    is_regex = True
+                    pattern = pattern[3:]
+                    pattern = pattern.strip()
+                    if not pattern:
+                        continue
+
+                regex = self._pattern_to_regex(
+                    pattern,
+                    is_regex=is_regex,
+                    allow_suffix=allow_suffix,
+                )
+                if not regex:
+                    continue
+
+                self.studio_code_patterns.append(
+                    (
+                        regex,
+                        {
+                            "studio": studio,
+                            "pattern": raw_pattern,
+                            "normalize": normalize,
+                            "code_group": int(rule.get("code_group", 1 if allow_suffix else 0) or 0),
+                            "studio_relationship": relationship,
+                        },
+                    )
+                )
 
     def _pattern_to_regex(
         self,
@@ -70,36 +100,9 @@ class StudioCodeFinder:
                 inner = inner[:-1]
             regex_str = rf"^({inner})(?:[^A-Za-z0-9].*)?$" if allow_suffix else f"^{inner}$"
         else:
-            parts: List[str] = []
-            i = 0
-            length = len(pattern)
-
-            while i < length:
-                char = pattern[i]
-
-                # Treat escaped characters as literals (e.g., "\#" -> "#")
-                if char == '\\' and i + 1 < length:
-                    parts.append(re.escape(pattern[i + 1]))
-                    i += 2
-                    continue
-
-                # Consecutive # represent digits
-                if char == '#':
-                    j = i
-                    while j < length and pattern[j] == '#':
-                        j += 1
-                    parts.append(rf"\d{{{j - i}}}")
-                    i = j
-                    continue
-
-                # Default: escape literal character
-                parts.append(re.escape(char))
-                i += 1
-
-            if not parts:
+            base_pattern = self._compile_code_pattern(pattern)
+            if not base_pattern:
                 return None
-
-            base_pattern = "".join(parts)
             if allow_suffix:
                 regex_str = rf"^({base_pattern})(?:[^A-Za-z0-9].*)?$"
             else:
@@ -129,6 +132,7 @@ class StudioCodeFinder:
 
         # Track which tokens are studio codes
         studio_code_matches: Dict[int, Dict[str, str]] = {}  # token_index -> {studio: name, code: value}
+        current_studio = result.studio
 
         for i, token in enumerate(result.tokens):
             # Skip path tokens and already identified studio tokens
@@ -136,7 +140,7 @@ class StudioCodeFinder:
                 continue
 
             # Check if token matches a studio code pattern
-            studio_code_info = self._match_studio_code(token.value)
+            studio_code_info = self._match_studio_code(token.value, current_studio=current_studio)
             if studio_code_info:
                 studio_code_matches[i] = studio_code_info
 
@@ -146,7 +150,7 @@ class StudioCodeFinder:
 
         return result
 
-    def _match_studio_code(self, token_value: str) -> Optional[Dict[str, str]]:
+    def _match_studio_code(self, token_value: str, *, current_studio: Optional[str] = None) -> Optional[Dict[str, str]]:
         """
         Check if a token value matches a known studio code pattern.
 
@@ -157,8 +161,17 @@ class StudioCodeFinder:
             Dictionary with studio and code info if match found, None otherwise
         """
         normalized_value = token_value.strip()
+        current_studio_normalized = (current_studio or "").strip().lower()
 
         for regex, info in self.studio_code_patterns:
+            relationship = str(info.get("studio_relationship") or "can_set").strip().lower()
+            if relationship == "requires":
+                if not current_studio_normalized:
+                    continue
+                required = (info.get("studio") or "").strip().lower()
+                if required and required != current_studio_normalized:
+                    continue
+
             match = regex.match(normalized_value)
             if match:
                 group_idx = info.get('code_group', 0) or 0
@@ -171,7 +184,8 @@ class StudioCodeFinder:
                 code_value = normalized_code or raw_code
                 return {
                     'studio': info.get('studio'),
-                    'code': code_value
+                    'code': code_value,
+                    'code_span': match.span(group_idx),
                 }
 
         return None
@@ -183,6 +197,12 @@ class StudioCodeFinder:
         code = code_value.strip()
         if not normalize:
             return code
+
+        if normalize.get("normalize_numeric_pair"):
+            match = re.match(r"^(\d{3,5})\s+(\d{2})$", code)
+            if match:
+                prefix, suffix = match.groups()
+                return prefix.zfill(5) + suffix
 
         if normalize.get('strip_prefix_letters'):
             code = re.sub(r'^[A-Za-z]+[-_\s]*', '', code)
@@ -201,6 +221,79 @@ class StudioCodeFinder:
 
         return code
 
+    def _compile_code_pattern(self, pattern: str) -> Optional[str]:
+        """
+        Compile a dictionary "code" pattern into a regex body.
+
+        Supported syntax:
+        - '#' placeholders represent digits (consecutive '#' -> exact length)
+        - '(###)' denotes an optional digit prefix of variable length 0..N (N = number of '#')
+          Example: "(##)### ##" matches "123 45", "1234 56", "12345 67"
+        - '\\' escapes the next character as a literal
+        """
+
+        def compile_segment(start: int, until: Optional[str] = None) -> Tuple[Optional[str], int, bool, int]:
+            parts: List[str] = []
+            hashes_only = True
+            hashes_count = 0
+            i = start
+            length = len(pattern)
+
+            while i < length:
+                char = pattern[i]
+
+                if until and char == until:
+                    return "".join(parts), i + 1, hashes_only, hashes_count
+
+                if char == "\\":
+                    if i + 1 >= length:
+                        return None, length, False, 0
+                    parts.append(re.escape(pattern[i + 1]))
+                    hashes_only = False
+                    i += 2
+                    continue
+
+                if char == "(":
+                    inner, new_i, inner_hashes_only, inner_hashes_count = compile_segment(i + 1, until=")")
+                    if inner is None:
+                        return None, length, False, 0
+                    if inner_hashes_only and inner_hashes_count > 0:
+                        parts.append(rf"\d{{0,{inner_hashes_count}}}")
+                        hashes_count += inner_hashes_count
+                    else:
+                        parts.append(f"(?:{inner})?")
+                        hashes_only = False
+                    i = new_i
+                    continue
+
+                if char == ")":
+                    # Unbalanced ')' outside an optional group: treat as literal.
+                    parts.append(re.escape(char))
+                    hashes_only = False
+                    i += 1
+                    continue
+
+                if char == "#":
+                    j = i
+                    while j < length and pattern[j] == "#":
+                        j += 1
+                    count = j - i
+                    parts.append(rf"\d{{{count}}}")
+                    hashes_count += count
+                    i = j
+                    continue
+
+                parts.append(re.escape(char))
+                hashes_only = False
+                i += 1
+
+            if until:
+                return None, length, False, 0
+            return "".join(parts), length, hashes_only, hashes_count
+
+        compiled, _, _, _ = compile_segment(0, until=None)
+        return compiled
+
     def _update_tokens_and_pattern(
         self,
         result: TokenizationResult,
@@ -216,30 +309,43 @@ class StudioCodeFinder:
         Returns:
             New TokenizationResult with updated tokens and pattern
         """
-        # Create new tokens list with studio code matches marked
-        new_tokens = []
-        real_token_index = 0  # Counter for non-path tokens
-        studio_code_count = 0  # Counter for studio code replacements in pattern
+        # Create new tokens list with studio code matches marked, preserving suffix content.
+        new_tokens: List[Token] = []
+        token_mapping: Dict[int, List[Tuple[int, bool]]] = {}  # old_token_index -> [(new_idx, is_code), ...]
+        real_token_index = 0  # Counter for non-path tokens in original
+
+        def next_real_index() -> int:
+            return sum(1 for t in new_tokens if t.type != "path")
 
         for i, token in enumerate(result.tokens or []):
-            if token.type == 'path':
+            if token.type == "path":
                 new_tokens.append(token)
                 continue
 
             if i in studio_code_matches:
-                # Replace with studio code token
                 studio_info = studio_code_matches[i]
-                new_tokens.append(Token(
-                    value=studio_info['code'],
-                    type='studio_code',
-                    position=token.position
-                ))
+                split_info: List[Tuple[int, bool]] = []
+
+                code_value = studio_info.get("code") or ""
+                new_idx = next_real_index()
+                new_tokens.append(Token(value=str(code_value), type="studio_code", position=token.position))
+                split_info.append((new_idx, True))
+
+                remainder = self._extract_suffix_after_code(token.value, studio_info.get("code_span"))
+                if remainder:
+                    new_idx = next_real_index()
+                    new_tokens.append(Token(value=remainder, type="text", position=token.position))
+                    split_info.append((new_idx, False))
+
+                token_mapping[real_token_index] = split_info
             else:
+                new_idx = next_real_index()
                 new_tokens.append(token)
+                token_mapping[real_token_index] = [(new_idx, False)]
+
             real_token_index += 1
 
-        # Rebuild pattern with studio code replacements
-        new_pattern = self._rebuild_pattern(result, studio_code_matches)
+        new_pattern = self._rebuild_pattern_after_split(result.pattern, token_mapping)
 
         # Set studio metadata if not already populated
         studio_value = result.studio
@@ -269,43 +375,48 @@ class StudioCodeFinder:
             confidences=result.confidences
         )
 
-    def _rebuild_pattern(
+    def _extract_suffix_after_code(self, token_value: str, code_span) -> Optional[str]:
+        if not token_value:
+            return None
+
+        value = str(token_value)
+        if not isinstance(code_span, (tuple, list)) or len(code_span) != 2:
+            return None
+
+        _, end = code_span
+        if end <= 0 or end >= len(value):
+            return None
+
+        remainder = value[end:]
+        # Strip common separators between code and the remaining content.
+        remainder = re.sub(r"^[^A-Za-z0-9]+", "", remainder)
+        remainder = remainder.strip()
+        return remainder or None
+
+    def _rebuild_pattern_after_split(
         self,
-        result: TokenizationResult,
-        studio_code_matches: Dict[int, Dict[str, str]]
+        pattern: Optional[str],
+        token_mapping: Dict[int, List[Tuple[int, bool]]],
     ) -> str:
-        """
-        Rebuild the pattern, replacing {tokenN} with {studio_code} for studio code matches.
-
-        Args:
-            result: Original TokenizationResult with original pattern
-            studio_code_matches: Mapping of token index to studio code info
-
-        Returns:
-            Updated pattern string
-        """
-        pattern = result.pattern
         if not pattern:
             return pattern or ""
 
-        # Build a mapping of {tokenN} to replacement for studio code matches
-        replacements = {}
-        real_token_index = 0
+        def replace_placeholder(match: re.Match[str]) -> str:
+            old_idx = int(match.group(1))
+            new_tokens = token_mapping.get(old_idx)
+            if not new_tokens:
+                return match.group(0)
 
-        for i, token in enumerate(result.tokens or []):
-            if token.type == 'path':
-                continue
+            if len(new_tokens) == 1:
+                new_idx, is_code = new_tokens[0]
+                return "{studio_code}" if is_code else f"{{token{new_idx}}}"
 
-            if i in studio_code_matches:
-                replacements[f"{{token{real_token_index}}}"] = "{studio_code}"
+            parts: List[str] = []
+            for new_idx, is_code in new_tokens:
+                parts.append("{studio_code}" if is_code else f"{{token{new_idx}}}")
+            return " ".join(parts)
 
-            real_token_index += 1
-
-        # Apply replacements to pattern
-        for old_pattern, new_pattern_part in replacements.items():
-            pattern = pattern.replace(old_pattern, new_pattern_part)
-
-        return pattern
+        return re.sub(r"\{token(\d+)\}", replace_placeholder, pattern)
 
 
 if __name__ == '__main__':

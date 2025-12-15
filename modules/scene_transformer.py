@@ -40,13 +40,21 @@ class SceneTransformer:
         self.mark_organized = False  # Phase 1 default: keep scenes unorganized
 
     def scene_to_filename(self, scene: Scene) -> Optional[str]:
-        if not scene.files:
+        file = self.select_primary_file(scene)
+        if not file:
             return None
 
-        file = scene.files[0] if self.prefer_first_file else self._select_best_file(scene.files)
         if self.include_path_in_filename and file.parent_folder_path:
             return f"{file.parent_folder_path}/{file.basename}"
         return file.basename
+
+    def select_primary_file(self, scene: Scene) -> Optional[SceneFile]:
+        """Return the file that should be parsed for a scene."""
+        if not scene.files:
+            return None
+        if self.prefer_first_file:
+            return scene.files[0]
+        return self._select_best_file(scene.files)
 
     def scenes_to_filenames(self, scenes: List[Scene]) -> List[Tuple[str, str]]:
         result: List[Tuple[str, str]] = []
@@ -252,4 +260,3 @@ class SceneTransformer:
         has_date = "date" in approved_fields and parsed.date is not None
         has_code = "studio_code" in approved_fields and parsed.studio_code is not None
         return (has_studio and has_title) or (has_studio and (has_date or has_code))
-

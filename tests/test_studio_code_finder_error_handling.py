@@ -5,9 +5,7 @@ Tests resilience when dictionaries are missing, malformed, or contain invalid da
 """
 
 import pytest
-import json
-import tempfile
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch
 from modules import StudioCodeFinder, TokenizationResult, Token
 from modules.dictionary_loader import DictionaryLoader
 
@@ -32,7 +30,7 @@ class TestStudioCodeFinderErrorHandling:
     def test_missing_dictionary_file_graceful_handling(self):
         """Test that finder handles missing dictionary file gracefully."""
         # Mock DictionaryLoader to return None (simulating missing file)
-        with patch.object(DictionaryLoader, 'get_section', return_value=None):
+        with patch.object(DictionaryLoader, "load_dictionary", return_value=None):
             finder = StudioCodeFinder()
             # Should initialize with empty patterns instead of crashing
             assert finder.studio_code_patterns == []
@@ -40,88 +38,63 @@ class TestStudioCodeFinderErrorHandling:
     def test_invalid_json_in_dictionary_graceful_handling(self):
         """Test that finder handles invalid JSON gracefully."""
         # Mock DictionaryLoader to return None (simulating JSON decode error)
-        with patch.object(DictionaryLoader, 'get_section', return_value=None):
+        with patch.object(DictionaryLoader, "load_dictionary", return_value=None):
             finder = StudioCodeFinder()
             # Should initialize with empty patterns instead of crashing
             assert finder.studio_code_patterns == []
 
     def test_empty_studio_codes_list(self):
-        """Test handling of empty studio_codes list in dictionary."""
+        """Test handling of empty studio-code rule list."""
         # Mock DictionaryLoader to return empty list
-        with patch.object(DictionaryLoader, 'get_section', return_value=[]):
+        with patch.object(DictionaryLoader, "load_dictionary", return_value=[]):
             finder = StudioCodeFinder()
             assert finder.studio_code_patterns == []
 
-    def test_missing_studio_codes_key(self):
-        """Test handling when 'studio_codes' key is missing from dictionary."""
-        # Mock DictionaryLoader to return None (key not found)
-        with patch.object(DictionaryLoader, 'get_section', return_value=None):
+    def test_invalid_studio_code_rules_type(self):
+        """Test handling when studio-code rules are not a list."""
+        with patch.object(DictionaryLoader, "load_dictionary", return_value={"not": "a list"}):
             finder = StudioCodeFinder()
             assert finder.studio_code_patterns == []
 
-    def test_studio_code_missing_code_field(self):
-        """Test handling when studio code entry is missing 'code' field."""
-        dict_data = {
-            "studio_codes": [
-                {"studio": "Test Studio"},  # Missing 'code'
-                {"code": "AD####", "studio": "Active Duty"}
-            ]
-        }
-        json_str = json.dumps(dict_data)
+    def test_rule_missing_code_patterns(self):
+        """Test handling when a rule is missing 'code_patterns'."""
+        rules = [
+            {"studio": "Test Studio", "studio_relationship": "can_set"},  # Missing code_patterns
+            {"studio": "Active Duty", "studio_relationship": "can_set", "code_patterns": ["AD####"], "allow_suffix": True},
+        ]
+        with patch.object(DictionaryLoader, "load_dictionary", return_value=rules):
+            finder = StudioCodeFinder()
+            assert len(finder.studio_code_patterns) >= 1
 
-        with patch('builtins.open', mock_open(read_data=json_str)):
-            with patch('json.load', return_value=dict_data):
-                finder = StudioCodeFinder()
-                # Should skip the incomplete entry and load the valid one
-                assert len(finder.studio_code_patterns) >= 1
+    def test_rule_missing_studio_field(self):
+        """Test handling when a rule is missing 'studio' field."""
+        rules = [
+            {"studio_relationship": "can_set", "code_patterns": ["XX####"], "allow_suffix": True},
+            {"studio": "Active Duty", "studio_relationship": "can_set", "code_patterns": ["AD####"], "allow_suffix": True},
+        ]
+        with patch.object(DictionaryLoader, "load_dictionary", return_value=rules):
+            finder = StudioCodeFinder()
+            assert len(finder.studio_code_patterns) >= 1
 
-    def test_studio_code_missing_studio_field(self):
-        """Test handling when studio code entry is missing 'studio' field."""
-        dict_data = {
-            "studio_codes": [
-                {"code": "XX####"},  # Missing 'studio'
-                {"code": "AD####", "studio": "Active Duty"}
-            ]
-        }
-        json_str = json.dumps(dict_data)
+    def test_rule_with_empty_pattern_string(self):
+        """Test handling of empty pattern strings within a rule."""
+        rules = [
+            {"studio": "Test", "studio_relationship": "can_set", "code_patterns": [""], "allow_suffix": True},
+            {"studio": "Active Duty", "studio_relationship": "can_set", "code_patterns": ["AD####"], "allow_suffix": True},
+        ]
+        with patch.object(DictionaryLoader, "load_dictionary", return_value=rules):
+            finder = StudioCodeFinder()
+            assert len(finder.studio_code_patterns) >= 1
 
-        with patch('builtins.open', mock_open(read_data=json_str)):
-            with patch('json.load', return_value=dict_data):
-                finder = StudioCodeFinder()
-                # Should skip the incomplete entry and load the valid one
-                assert len(finder.studio_code_patterns) >= 1
-
-    def test_studio_code_empty_code_string(self):
-        """Test handling of empty code string."""
-        dict_data = {
-            "studio_codes": [
-                {"code": "", "studio": "Test"},  # Empty code
-                {"code": "AD####", "studio": "Active Duty"}
-            ]
-        }
-        json_str = json.dumps(dict_data)
-
-        with patch('builtins.open', mock_open(read_data=json_str)):
-            with patch('json.load', return_value=dict_data):
-                finder = StudioCodeFinder()
-                # Should skip the empty code and load the valid one
-                assert len(finder.studio_code_patterns) >= 1
-
-    def test_studio_code_empty_studio_string(self):
-        """Test handling of empty studio string."""
-        dict_data = {
-            "studio_codes": [
-                {"code": "XX####", "studio": ""},  # Empty studio
-                {"code": "AD####", "studio": "Active Duty"}
-            ]
-        }
-        json_str = json.dumps(dict_data)
-
-        with patch('builtins.open', mock_open(read_data=json_str)):
-            with patch('json.load', return_value=dict_data):
-                finder = StudioCodeFinder()
-                # Should skip the empty studio and load the valid one
-                assert len(finder.studio_code_patterns) >= 1
+    def test_rule_with_empty_studio_string(self):
+        """Test handling of empty studio strings."""
+        rules = [
+            {"studio": "", "studio_relationship": "can_set", "code_patterns": ["XX####"], "allow_suffix": True},
+            {"studio": "Active Duty", "studio_relationship": "can_set", "code_patterns": ["AD####"], "allow_suffix": True},
+        ]
+        with patch.object(DictionaryLoader, "load_dictionary", return_value=rules):
+            finder = StudioCodeFinder()
+            assert len(finder.studio_code_patterns) >= 1
 
     def test_malformed_regex_pattern_handling(self, studio_code_finder):
         """Test that malformed regex patterns are handled gracefully."""
